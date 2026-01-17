@@ -25,7 +25,9 @@ document.addEventListener('DOMContentLoaded', () => {
         showModal();
     });
 
-    // document.getElementById('start-game-btn').addEventListener('click', startNewGame);
+    // document.getElementById('start-game-btn').addEventListener('click', () => {
+    //      // Managed by PyScript @when('click', '#start-game-btn')
+    // });
 
     const logToggleRed = document.getElementById('toggle-red');
     if (logToggleRed) {
@@ -46,40 +48,7 @@ function hideModal() {
     document.getElementById('new-game-modal').classList.remove('active');
 }
 
-function startNewGame() {
-    const playerMode = document.getElementById('player-mode').value;
-    const winningScoreVal = document.getElementById('winning-score').value;
 
-    aiEnabled = (playerMode === '1');
-
-    // Update goal display
-    const goalText = (winningScoreVal === 'None') ? "Unlimited" : winningScoreVal;
-    document.getElementById('goal-display').innerText = goalText;
-
-    post('/api/new_game', {
-        size: BOARD_RADIUS,
-        winning_score: winningScoreVal
-    });
-
-    hideModal();
-}
-
-function post(url, data) {
-    fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-    })
-        .then(res => res.json())
-        .then(handleStateUpdate)
-        .catch(err => console.error(err));
-}
-
-function fetchState() {
-    fetch('/api/state')
-        .then(res => res.json())
-        .then(handleStateUpdate);
-}
 
 function handleStateUpdate(state) {
     if (state.error) {
