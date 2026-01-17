@@ -10,6 +10,10 @@ let aiEnabled = false;
 let previousScores = { 'Red': 0, 'Blue': 0 };
 let isAnimating = false;
 
+window.setAiEnabled = function (val) {
+    aiEnabled = val;
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     // Initial fetch, but we might want to prompt new game immediately
     // fetchState(); 
@@ -21,7 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
         showModal();
     });
 
-    document.getElementById('start-game-btn').addEventListener('click', startNewGame);
+    // document.getElementById('start-game-btn').addEventListener('click', startNewGame);
 
     const logToggleRed = document.getElementById('toggle-red');
     if (logToggleRed) {
@@ -198,7 +202,12 @@ function wait(ms) {
 function checkAiTurn() {
     if (aiEnabled && currentState && currentState.current_player === 'Blue' && !currentState.game_over && !isAnimating) {
         setTimeout(() => {
-            post('/api/ai_move', {});
+            if (window.py_ai_move) {
+                const stateRaw = window.py_ai_move();
+                if (stateRaw) {
+                    handleStateUpdate(JSON.parse(stateRaw));
+                }
+            }
         }, 500);
     }
 }
@@ -341,7 +350,13 @@ function onHexClick(q, r) {
     if (currentState.game_over || isAnimating) return;
     if (aiEnabled && currentState.current_player === 'Blue') return;
 
-    post('/api/move', { q: q, r: r });
+    // PyScript call
+    if (window.py_move) {
+        const stateRaw = window.py_move(q, r);
+        if (stateRaw) {
+            handleStateUpdate(JSON.parse(stateRaw));
+        }
+    }
 }
 
 

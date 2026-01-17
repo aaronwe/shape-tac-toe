@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shape Tac Toe</title>
+    <!-- PyScript -->
+    <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css">
+    <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
+
+    <link rel="stylesheet" href="static/styles.css">
+</head>
+
+<body>
+    <!-- PyScript Config -->
+    <script type="py" src="./client_game.py" config="./pyscript.toml"></script>
+    <div class="container">
+        <header>
+            <h1>Shape Tac Toe</h1>
+            <p>Form shapes to score points!</p>
+        </header>
+
+        <div class="game-info">
+            <div class="score-card player-red" id="card-red">
+                <h2>Red</h2>
+                <span class="score" id="score-red">0</span>
+                <div class="last-turn-score" id="last-turn-red">Last Turn: 0</div>
+
+                <div class="score-log-container player-log" id="log-container-red">
+                    <button class="score-log-toggle-mini" id="toggle-red">
+                        Log <span class="arrow" id="arrow-red">▼</span>
+                    </button>
+                    <div id="log-content-red" class="score-log-content hidden">
+                        <ul id="score-log-list-red"></ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="center-panel">
+                <div class="status-panel">
+                    <div id="turn-indicator">Turn: Red</div>
+                    <div id="message-area"></div>
+                </div>
+
+
+            </div>
+
+            <div class="score-card player-blue" id="card-blue">
+                <h2>Blue</h2>
+                <span class="score" id="score-blue">0</span>
+                <div class="last-turn-score" id="last-turn-blue">Last Turn: 0</div>
+
+                <div class="score-log-container player-log" id="log-container-blue">
+                    <button class="score-log-toggle-mini" id="toggle-blue">
+                        Log <span class="arrow" id="arrow-blue">▼</span>
+                    </button>
+                    <div id="log-content-blue" class="score-log-content hidden">
+                        <ul id="score-log-list-blue"></ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="game-board" class="board-container" style="position:relative;">
+            <!-- SVG Grid will be rendered here -->
+            <svg id="hex-grid" width="600" height="600"></svg>
+            <!-- Scoring overlays will be injected here -->
+        </div>
+
+        <div class="controls">
+            <button id="open-new-game-btn">Game Options</button>
+        </div>
+
+        <div class="rules">
+            <h3>Scoring Rules</h3>
+            <ul>
+                <li>Line of 3: 1 pt (+1 per extra)</li>
+                <li>Loop (6-Hex Ring): 6 pts</li>
+                <li>Triangles: Size 2 (1pt), Size 3 (+3pts)...</li>
+                <li>Hollow Shapes: +4 pts (3x3), +8 pts (4x4)</li>
+                <li><strong>Goal: First to <span id="goal-display">40</span> Points!</strong></li>
+                <li><em>(Fairness: If Red wins first, Blue gets one last turn)</em></li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- New Game Modal -->
+    <div class="modal-overlay" id="new-game-modal">
+        <div class="modal-content">
+            <h2>New Game Setup</h2>
+            <div class="form-group">
+                <label>Players</label>
+                <select id="player-mode">
+                    <option value="1">1 Player (vs AI)</option>
+                    <option value="2">2 Players (Hotseat)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Winning Score</label>
+                <select id="winning-score">
+                    <option value="20">20 Points (Short)</option>
+                    <option value="40" selected>40 Points (Standard)</option>
+                    <option value="50">50 Points</option>
+                    <option value="75">75 Points (Long)</option>
+                    <option value="100">100 Points (Epic)</option>
+                    <option value="None">Unlimited (Fill Board)</option>
+                </select>
+            </div>
+            <div class="modal-actions">
+                <button id="start-game-btn">Start New Game</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="static/script.js"></script>
+</body>
+
+</html>
