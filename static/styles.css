@@ -1,0 +1,396 @@
+/* Main Styles */
+:root {
+    --bg-color: #f0f4f8;
+    --text-color: #333;
+    --hex-bg: #e0e0e0;
+    --hex-hover: #d0d0d0;
+    --player-red-color: #e63946;
+    --player-blue-color: #457b9d;
+    --grid-stroke: #fff;
+    --highlight-color: #ffd700;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    margin: 0;
+    padding: 20px;
+    display: flex;
+    justify-content: center;
+}
+
+.container {
+    max-width: 800px;
+    width: 100%;
+    text-align: center;
+    background: white;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+h1 {
+    margin-bottom: 0.5rem;
+}
+
+.game-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 20px 0;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+/* Score Cards */
+.score-card {
+    padding: 10px 20px;
+    position: relative;
+    transition: transform 0.2s;
+    min-width: 120px;
+}
+
+.score-card.active-turn {
+    transform: scale(1.1);
+    background: #e9ecef;
+    border-radius: 8px;
+}
+
+.score {
+    font-size: 2em;
+    font-weight: bold;
+    display: block;
+    transition: color 0.3s;
+}
+
+/* Floating score animation */
+.score-popup {
+    position: absolute;
+    top: -20px;
+    right: 10px;
+    color: var(--highlight-color);
+    font-weight: bold;
+    font-size: 1.5em;
+    animation: floatUp 1s ease-out forwards;
+    pointer-events: none;
+    text-shadow: 1px 1px 0 #000;
+}
+
+@keyframes floatUp {
+    0% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    100% {
+        opacity: 0;
+        transform: translateY(-30px);
+    }
+}
+
+.player-red h2 {
+    color: var(--player-red-color);
+}
+
+.player-blue h2 {
+    color: var(--player-blue-color);
+}
+
+.player-red .score {
+    color: var(--player-red-color);
+}
+
+.player-blue .score {
+    color: var(--player-blue-color);
+}
+
+#turn-indicator {
+    font-size: 1.2em;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+#message-area {
+    min-height: 1.2em;
+    color: #d62828;
+    font-weight: bold;
+}
+
+.board-container {
+    display: flex;
+    justify-content: center;
+    margin: 20px 0;
+    overflow: auto;
+}
+
+/* SVG Styling */
+polygon {
+    fill: var(--hex-bg);
+    stroke: var(--grid-stroke);
+    stroke-width: 2px;
+    cursor: pointer;
+    transition: fill 0.2s, stroke 0.3s, stroke-width 0.3s;
+}
+
+polygon:hover {
+    fill: var(--hex-hover);
+}
+
+/* Dynamic hover color based on turn is handled via JS class injection on container or explicit style? 
+   No, let's use body classes or container classes for turn-based hover.
+*/
+.turn-red polygon:not(.occupied):hover {
+    fill: #ffbdc3;
+    /* Light red */
+}
+
+.turn-blue polygon:not(.occupied):hover {
+    fill: #a8dadc;
+    /* Light blue */
+}
+
+.hex-marker-red {
+    fill: var(--player-red-color) !important;
+}
+
+.hex-marker-blue {
+    fill: var(--player-blue-color) !important;
+}
+
+.hex-last-move {
+    filter: brightness(1.2);
+    stroke: #333;
+    /* Darker border for emphasis */
+}
+
+.hex-scoring {
+    stroke: var(--highlight-color);
+    stroke-width: 4px;
+    z-index: 10;
+    /* Doesn't work on SVG elements the same way, but stroke width helps */
+    animation: pulse 1s infinite alternate;
+}
+
+@keyframes pulse {
+    from {
+        stroke-opacity: 1;
+    }
+
+    to {
+        stroke-opacity: 0.5;
+    }
+}
+
+.controls {
+    margin: 20px 0;
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    align-items: center;
+}
+
+button {
+    padding: 10px 20px;
+    font-size: 1em;
+    cursor: pointer;
+    background-color: #26547c;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    transition: background-color 0.2s;
+}
+
+button:hover {
+    background-color: #1d405e;
+}
+
+.rules {
+    text-align: left;
+    margin-top: 30px;
+    font-size: 0.9em;
+    color: #666;
+    background: #fafafa;
+    padding: 15px;
+    border-radius: 8px;
+}
+
+/* Modal Styling */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+.modal-overlay.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.modal-content {
+    background: white;
+    padding: 30px;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 400px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    text-align: left;
+}
+
+.modal-content h2 {
+    margin-top: 0;
+    color: #333;
+    text-align: center;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: bold;
+}
+
+.form-group select,
+.form-group input {
+    width: 100%;
+    padding: 8px;
+    font-size: 1em;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.modal-actions {
+    text-align: center;
+    margin-top: 25px;
+}
+
+.modal-actions button {
+    width: 100%;
+    padding: 12px;
+    font-size: 1.1em;
+}
+
+/* Shape Scoring Label */
+.shape-score-label {
+    position: absolute;
+    /* Relative to board container? No, needs to be precise relative to SVG */
+    /* Handled via JS absolute positioning over the board container */
+    background: rgba(255, 215, 0, 0.9);
+    color: #333;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-weight: bold;
+    font-size: 1em;
+    pointer-events: none;
+    transform: translate(-50%, -50%) scale(0);
+    /* Center on point */
+    animation: popIn 0.3s forwards;
+    z-index: 20;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+@keyframes popIn {
+    0% {
+        transform: translate(-50%, -50%) scale(0);
+        opacity: 0;
+    }
+
+    80% {
+        transform: translate(-50%, -50%) scale(1.2);
+        opacity: 1;
+    }
+
+    100% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 1;
+    }
+
+}
+
+/* Score Log */
+.score-log-container {
+    position: relative;
+    width: 100%;
+    margin-top: 10px;
+}
+
+.score-log-toggle-mini {
+    background-color: transparent;
+    color: #555;
+    border: 1px solid #ddd;
+    font-size: 0.8em;
+    padding: 4px 8px;
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.score-log-toggle-mini:hover {
+    background-color: #f0f0f0;
+}
+
+.arrow {
+    transition: transform 0.2s;
+    font-size: 0.8em;
+}
+
+.score-log-container.active .arrow {
+    transform: rotate(180deg);
+}
+
+.score-log-content {
+    display: none;
+    margin-top: 4px;
+    background: #fff;
+    border: 1px solid #eee;
+    border-radius: 4px;
+    padding: 0;
+    list-style: none;
+    max-height: 150px;
+    overflow-y: auto;
+    font-size: 0.85em;
+    text-align: left;
+}
+
+.score-log-container.active .score-log-content {
+    display: block;
+}
+
+.score-log-content.hidden {
+    display: none;
+}
+
+#score-log-list-red,
+#score-log-list-blue {
+    padding: 0;
+    margin: 0;
+    list-style: none;
+}
+
+.score-log-content li {
+    padding: 4px 8px;
+    border-bottom: 1px solid #f5f5f5;
+    color: #444;
+}
+
+.score-log-content li:last-child {
+    border-bottom: none;
+}
