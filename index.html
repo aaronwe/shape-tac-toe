@@ -1,51 +1,75 @@
 <!DOCTYPE html>
+<!-- 
+    The 'lang' attribute helps screen readers and search engines know the language of the page.
+-->
 <html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Shape Tac Toe</title>
-    <!-- PyScript -->
+
+    <!-- 
+        PyScript Core:
+        These two lines load the PyScript library from the internet (CDN).
+        This allows us to run Python code directly in the browser!
+    -->
     <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css">
     <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
 
+    <!-- Our Custom Styles -->
     <link rel="stylesheet" href="static/styles.css">
 </head>
 
 <body>
-    <!-- PyScript Config -->
+    <!-- 
+        PyScript Configuration:
+        The <script type="py"> tag is where the magic happens.
+        
+        src="./client_game.py": Tells PyScript to load and run this Python file.
+        config="./pyscript.toml": Points to a configuration file that tells PyScript 
+                                  which files in our folder should be available to the Python env.
+        
+        This script runs invisibly in the background.
+    -->
     <script type="py" src="./client_game.py" config="./pyscript.toml"></script>
+
     <div class="container">
+        <!-- Header Section -->
         <header>
             <h1>Shape Tac Toe</h1>
             <p>Form shapes to score points!</p>
         </header>
 
+        <!-- Game Info Dashboard -->
         <div class="game-info">
+            <!-- Red Player Card -->
             <div class="score-card player-red" id="card-red">
                 <h2>Red</h2>
                 <span class="score" id="score-red">0</span>
                 <div class="last-turn-score" id="last-turn-red">Last Turn: 0</div>
 
+                <!-- Toggleable Log for Red's scoring history -->
                 <div class="score-log-container player-log" id="log-container-red">
                     <button class="score-log-toggle-mini" id="toggle-red">
                         Log <span class="arrow" id="arrow-red">▼</span>
                     </button>
+                    <!-- Hidden by default -->
                     <div id="log-content-red" class="score-log-content hidden">
                         <ul id="score-log-list-red"></ul>
                     </div>
                 </div>
             </div>
 
+            <!-- Center Status Panel -->
             <div class="center-panel">
                 <div class="status-panel">
                     <div id="turn-indicator">Turn: Red</div>
                     <div id="message-area"></div>
                 </div>
-
-
             </div>
 
+            <!-- Blue Player Card -->
             <div class="score-card player-blue" id="card-blue">
                 <h2>Blue</h2>
                 <span class="score" id="score-blue">0</span>
@@ -62,16 +86,27 @@
             </div>
         </div>
 
+        <!-- 
+            Game Board Container:
+            We use an SVG (Scalable Vector Graphics) to draw the hexagonal grid.
+            SVGs are great for geometric shapes because they remain crisp at any size.
+        -->
         <div id="game-board" class="board-container" style="position:relative;">
-            <!-- SVG Grid will be rendered here -->
+            <!-- 
+                The SVG Element. 
+                width/height: Dimensions in pixels.
+                The hexagons will be drawn inside this tag by JavaScript.
+            -->
             <svg id="hex-grid" width="600" height="600"></svg>
-            <!-- Scoring overlays will be injected here -->
+            <!-- Scoring overlay labels will be dynamically injected here by JS -->
         </div>
 
         <div class="controls">
+            <!-- Opens the "New Game Setup" modal -->
             <button id="open-new-game-btn">Game Options</button>
         </div>
 
+        <!-- Rules Section -->
         <div class="rules">
             <h3>Scoring Rules</h3>
             <ul>
@@ -85,7 +120,11 @@
         </div>
     </div>
 
-    <!-- New Game Modal -->
+    <!-- 
+        New Game Modal:
+        A popup window that overlays the screen.
+        It is hidden by default and shown via CSS/JS.
+    -->
     <div class="modal-overlay" id="new-game-modal">
         <div class="modal-content">
             <h2>New Game Setup</h2>
@@ -108,11 +147,16 @@
                 </select>
             </div>
             <div class="modal-actions">
+                <!-- 
+                   Note: This button's click event is handled by Python (@when("click", "#start-game-btn"))!
+                   We don't need to add a JS event listener for it.
+                -->
                 <button id="start-game-btn">Start New Game</button>
             </div>
         </div>
     </div>
 
+    <!-- Main JavaScript Logic -->
     <script src="static/script.js"></script>
 </body>
 

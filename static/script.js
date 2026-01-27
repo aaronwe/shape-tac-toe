@@ -1,34 +1,44 @@
-const HEX_SIZE = 25;
-const BOARD_RADIUS = 4;
+// --------------------------------------------------------------------------
+// Configuration Constants
+// --------------------------------------------------------------------------
+const HEX_SIZE = 25; // Size of each hexagon in pixels
+const BOARD_RADIUS = 4; // Not strictly used for rendering, but matches Python logic
 const VIEW_WIDTH = 600;
 const VIEW_HEIGHT = 600;
+// Center coordinates to offset drawing (0,0 in math -> center of SVG)
 const CENTER_X = VIEW_WIDTH / 2;
 const CENTER_Y = VIEW_HEIGHT / 2;
 
-let currentState = null;
-let aiEnabled = false;
-let previousScores = { 'Red': 0, 'Blue': 0 };
-let isAnimating = false;
+// --------------------------------------------------------------------------
+// Global State Storage
+// --------------------------------------------------------------------------
+let currentState = null; // Stores the latest game state object from Python
+let aiEnabled = false;   // Flag to prevent clicking while AI thinks
+let previousScores = { 'Red': 0, 'Blue': 0 }; // Track score changes for animation
+let isAnimating = false; // Flag to block interaction during score animations
 
+/**
+ * Called by Python to enabling/disabling AI mode.
+ */
 window.setAiEnabled = function (val) {
     aiEnabled = val;
 }
 
+// --------------------------------------------------------------------------
+// Initialization
+// --------------------------------------------------------------------------
 document.addEventListener('DOMContentLoaded', () => {
-    // Initial fetch, but we might want to prompt new game immediately
-    // fetchState(); 
-
-    // Show modal by default on load
+    // 1. Show the "New Game" modal immediately when page loads
     showModal();
 
+    // 2. Attach click listener to "Game Options" button
     document.getElementById('open-new-game-btn').addEventListener('click', () => {
         showModal();
     });
 
-    // document.getElementById('start-game-btn').addEventListener('click', () => {
-    //      // Managed by PyScript @when('click', '#start-game-btn')
-    // });
+    // Note: The "Start Game" button in the modal is handled by Python's @when decorator!
 
+    // 3. Attach listeners for the collapsible Score Logs
     const logToggleRed = document.getElementById('toggle-red');
     if (logToggleRed) {
         logToggleRed.addEventListener('click', () => toggleLog('red'));
@@ -48,86 +58,92 @@ function hideModal() {
     document.getElementById('new-game-modal').classList.remove('active');
 }
 
+// --------------------------------------------------------------------------
+// State Management (The Bridge between Python and JS)
+// --------------------------------------------------------------------------
 
-
+/**
+ * This is the main function called by Python to update the UI.
+ * @param {Object} state - The game state object sent from Python.
+ */
 function handleStateUpdate(state) {
     if (state.error) {
         console.error(state.error);
         return;
     }
 
-    // If we are currently animating, we might want to queue this update? 
-    // Or simpler: The backend state is the truth. 
-    // If there is a scoring event, we want to animate it BEFORE showing the final state fully?
-    // Or just run the animation sequence which essentially decorates the board.
-
     const oldState = currentState;
     currentState = state;
 
-    // Render basic board (markers) immediately, but WITHOUT scoring highlights
+    // 1. Render the board (markers)
+    // We render markers immediately so the user sees their move.
     renderBoard(state);
 
-    // Note: detailed scoring animation needs to know about the LAST move's shapes.
-    // If this update comes from an API call that resulted in scoring, `last_scoring_event` will be populated.
-
+    // 2. Update logs if there are new shapes
     if (state.last_turn_shapes) {
         updateScoreLog('red', state.last_turn_shapes.Red);
         updateScoreLog('blue', state.last_turn_shapes.Blue);
     }
 
+    // 3. Handle Animations
+    // If scoring happened (last_scoring_event has items), we play a sequence.
     if (state.last_scoring_event && state.last_scoring_event.length > 0) {
         animateScoringSequence(state.last_scoring_event, state);
     } else {
-        // Just update UI immediately
+        // No scoring? Just update score numbers immediately.
         updateUI(state);
-        // If Game Over, ensure we clear any lingering highlights (handled by renderBoard not adding them)
-        if (state.game_over) {
-            // No special action needed if we don't persist highlights
-        }
+
+        // If it's the AI's turn, trigger it (after a short delay for realism)
         checkAiTurn();
+
+        // Cleanup if game over
+        if (state.game_over) {
+            document.querySelectorAll('.hex-scoring').forEach(el => el.classList.remove('hex-scoring'));
+        }
     }
 }
 
+/**
+ * Async function to play animations one by one.
+ * We use 'await' to pause execution so the user can see each shape light up.
+ */
 async function animateScoringSequence(shapes, state) {
     isAnimating = true;
 
-    // Queue of animations
+    // Iterate through every shape scored in this move
     for (const shape of shapes) {
-        // 1. Highlight Hexes
+        // 1. Highlight the specific hexagons for this shape
         const shapeCells = shape.cells.map(c => `${c.q},${c.r}`);
         highlightHexes(shapeCells, true);
 
-        // 2. Show Label
+        // 2. Show a floating label (+4, +6, etc.) at the center of the shape
         const center = calculateShapeCenter(shape.cells);
         showShapeLabel(center, `+${shape.points}`);
 
-        // 3. Update Scoreboard partially? 
-        // For simplicity, we just animate the full score jump at the end or locally?
-        // User asked: "show each score in succession".
-        // Use a local accumulator or just let the score animation run?
-        // Let's just pause to let the user see the shape.
+        // 3. Pause for 800ms
         await wait(800);
 
-        // 4. Cleanup this shape
+        // 4. Cleanup: Remove highlight and label
         highlightHexes(shapeCells, false);
-        // Label removes itself via CSS animation usually, or we clean it
         removeShapeLabels();
 
+        // Short pause between shapes
         await wait(200);
     }
 
     isAnimating = false;
-    updateUI(state); // Update final scores and text
+    updateUI(state); // Finally update the score counters to the final value
     checkAiTurn();
 }
 
+/**
+ * Adds the 'hex-scoring' CSS class to a list of hex coordinates.
+ */
 function highlightHexes(cellKeys, active) {
     const svg = document.getElementById('hex-grid');
-    // Map keys "q,r" to elements.
-    // We didn't store a map. Select by data attribute? 
-    // We re-rendered board. Let's add data attributes to polys in renderBoard.
 
     cellKeys.forEach(k => {
+        // Find the polygon with the matching data-key
         const poly = svg.querySelector(`polygon[data-key="${k}"]`);
         if (poly) {
             if (active) poly.classList.add('hex-scoring');
@@ -136,12 +152,15 @@ function highlightHexes(cellKeys, active) {
     });
 }
 
+/**
+ * Creates a floating text label on the board.
+ */
 function showShapeLabel(pos, text) {
     const container = document.getElementById('game-board');
     const label = document.createElement('div');
     label.className = 'shape-score-label';
     label.innerText = text;
-    // Position
+    // Set absolute position based on calculated pixel coordinates
     label.style.left = `${pos.x}px`;
     label.style.top = `${pos.y}px`;
 
@@ -154,6 +173,9 @@ function removeShapeLabels() {
     labels.forEach(l => l.remove());
 }
 
+/**
+ * Averages the x and y coordinates of a list of hexes to find the visual center.
+ */
 function calculateShapeCenter(cells) {
     let sumX = 0, sumY = 0;
     cells.forEach(c => {
@@ -164,31 +186,41 @@ function calculateShapeCenter(cells) {
     return { x: sumX / cells.length, y: sumY / cells.length };
 }
 
+// Simple Promise wrapper for setTimeout to make async/await work
 function wait(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+// --------------------------------------------------------------------------
+// AI Handling
+// --------------------------------------------------------------------------
 function checkAiTurn() {
+    // If it's Blue's turn AND AI is enabled AND game isn't over...
     if (aiEnabled && currentState && currentState.current_player === 'Blue' && !currentState.game_over && !isAnimating) {
         setTimeout(() => {
+            // Call the Python function 'py_ai_move'
             if (window.py_ai_move) {
                 const stateRaw = window.py_ai_move();
                 if (stateRaw) {
+                    // Update JS with the result from Python
                     handleStateUpdate(JSON.parse(stateRaw));
                 }
             }
-        }, 500);
+        }, 500); // 500ms delay for "thinking" time
     }
 }
 
+// --------------------------------------------------------------------------
+// UI Rendering
+// --------------------------------------------------------------------------
 function updateUI(state) {
-    // Animate scores
+    // Animate the score numbers counting up
     animateScore('score-red', previousScores['Red'], state.scores['Red'], 'card-red');
     animateScore('score-blue', previousScores['Blue'], state.scores['Blue'], 'card-blue');
 
     previousScores = { ...state.scores };
 
-    // Update Last Turn Scores
+    // Update Last Turn text
     if (state.last_turn_points) {
         document.getElementById('last-turn-red').innerText = `Last Turn: ${state.last_turn_points['Red']}`;
         document.getElementById('last-turn-blue').innerText = `Last Turn: ${state.last_turn_points['Blue']}`;
@@ -197,22 +229,21 @@ function updateUI(state) {
     const turnDiv = document.getElementById('turn-indicator');
     const msgDiv = document.getElementById('message-area');
 
-    // Update Active Turn Card
+    // Visual active state for player cards
     document.getElementById('card-red').classList.toggle('active-turn', state.current_player === 'Red' && !state.game_over);
     document.getElementById('card-blue').classList.toggle('active-turn', state.current_player === 'Blue' && !state.game_over);
 
-    // Update body class for hover effects
+    // Update body class for global hover colors (controls which color hexes turn on hover)
     document.body.className = '';
     if (!state.game_over && !isAnimating) {
         document.body.classList.add(state.current_player === 'Red' ? 'turn-red' : 'turn-blue');
     }
 
+    // Handle Game Over or Next Turn messages
     if (state.game_over) {
         turnDiv.innerText = "Game Over!";
         msgDiv.innerText = `Winner: ${state.winner}`;
-        // Un-highlight everything just in case
-        // Actually highlightHexes requires keys. 
-        // Just clear all.
+        // Clear any stuck highlights
         document.querySelectorAll('.hex-scoring').forEach(el => el.classList.remove('hex-scoring'));
     } else {
         if (state.final_turn) {
@@ -225,21 +256,18 @@ function updateUI(state) {
     }
 }
 
+/**
+ * Counts up the number from 'start' to 'end' visually.
+ * Also shows a fleeting popup if points increased.
+ */
 function animateScore(elementId, start, end, cardId) {
     if (start === end) return;
 
     const element = document.getElementById(elementId);
 
-    // Floating popup handled by shape labels now? 
-    // Maybe keep this for total sum update feedback?
-    // User asked "Show point value of *each* scoring formation over the hexes".
-    // We did that. 
-    // We can keep the card popup as a "total added" indicator or remove it to reduce noise.
-    // Let's keep it but simpler.
-
+    // Show "+Points" popup on the card
     const diff = end - start;
     if (diff > 0) {
-        // Floating popup on card
         const popup = document.createElement('div');
         popup.className = 'score-popup';
         popup.innerText = `+${diff}`;
@@ -247,13 +275,14 @@ function animateScore(elementId, start, end, cardId) {
         setTimeout(() => popup.remove(), 1000);
     }
 
-    // Count up animation
+    // Number roll animation
     let current = start;
+    // Calculate speed: faster for larger jumps
     const stepTime = Math.max(10, 500 / (diff || 1));
 
     const timer = setInterval(() => {
         current += 1;
-        if (current > end) current = end; // Safety
+        if (current > end) current = end;
         element.innerText = current;
         if (current >= end) {
             clearInterval(timer);
@@ -261,33 +290,48 @@ function animateScore(elementId, start, end, cardId) {
     }, stepTime);
 }
 
+// --------------------------------------------------------------------------
+// Hexagon Math & Drawing
+// --------------------------------------------------------------------------
+
+/**
+ * Converts Axial Coordinates (q, r) to Pixel Coordinates (x, y).
+ * Math Source: https://www.redblobgames.com/grids/hexagons/#hex-to-pixel
+ */
 function hexToPixel(q, r) {
     var x = HEX_SIZE * (3 / 2 * q);
     var y = HEX_SIZE * (Math.sqrt(3) / 2 * q + Math.sqrt(3) * r);
-    return { x: x + CENTER_X, y: y + CENTER_Y };
+    return { x: x + CENTER_X, y: y + CENTER_Y }; // Offset to center of screen
 }
 
+/**
+ * Redraws the entire SVG grid based on the board state.
+ * Optimized to re-use DOM nodes? No, we simply clear and rebuild for simplicity here.
+ */
 function renderBoard(state) {
     const svg = document.getElementById('hex-grid');
-    svg.innerHTML = '';
+    svg.innerHTML = ''; // Wipe clean
 
     const board = state.board;
 
-    // We no longer persist scoring highlights here. 
-    // Only markers.
-
     for (const key in board) {
+        // key is "q,r,s" (or just q,r depending on Python, but likely q,r,s here)
+        // We only need q and r.
         const parts = key.split(',');
         const q = parseInt(parts[0]);
         const r = parseInt(parts[1]);
-        const marker = board[key];
+        const marker = board[key]; // 'Red', 'Blue', or null
 
         const center = hexToPixel(q, r);
         drawHex(svg, center.x, center.y, q, r, marker);
     }
 }
 
+/**
+ * Creates a single Polygon element and appends it to the SVG.
+ */
 function drawHex(svg, x, y, q, r, marker) {
+    // Generate the 6 points of the hexagon
     const points = [];
     for (let i = 0; i < 6; i++) {
         const angle_deg = 60 * i;
@@ -300,9 +344,10 @@ function drawHex(svg, x, y, q, r, marker) {
     const poly = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
     poly.setAttribute("points", points.join(" "));
 
-    // Store data-key for animation lookups
+    // Store coordinate in data attribute so we can find it later (e.g. for animations)
     poly.setAttribute("data-key", `${q},${r}`);
 
+    // Apply CSS classes based on state
     if (marker === 'Red') {
         poly.setAttribute("class", "hex-marker-red occupied");
     } else if (marker === 'Blue') {
@@ -311,15 +356,18 @@ function drawHex(svg, x, y, q, r, marker) {
         poly.setAttribute("class", "");
     }
 
+    // Attach Click Handler
     poly.onclick = () => onHexClick(q, r);
     svg.appendChild(poly);
 }
 
 function onHexClick(q, r) {
     if (currentState.game_over || isAnimating) return;
+
+    // Prevent clicking during AI's turn
     if (aiEnabled && currentState.current_player === 'Blue') return;
 
-    // PyScript call
+    // Call Python function
     if (window.py_move) {
         const stateRaw = window.py_move(q, r);
         if (stateRaw) {
@@ -328,8 +376,9 @@ function onHexClick(q, r) {
     }
 }
 
-
-
+// --------------------------------------------------------------------------
+// Score Log Logic
+// --------------------------------------------------------------------------
 function toggleLog(player) {
     const container = document.getElementById(`log-container-${player}`);
     const content = document.getElementById(`log-content-${player}`);
@@ -342,7 +391,7 @@ function updateScoreLog(player, shapes) {
     const list = document.getElementById(`score-log-list-${player}`);
     if (!list) return;
 
-    list.innerHTML = ''; // Clear existing
+    list.innerHTML = ''; // Clear existing list
 
     if (!shapes || shapes.length === 0) {
         const empty = document.createElement('li');
@@ -375,7 +424,5 @@ function formatShapeName(shape) {
         const dim = type.split('_')[1];
         return `Hollow Hex (${dim})`; // e.g. 3x3
     }
-
-    // Fallback
     return type.charAt(0).toUpperCase() + type.slice(1);
 }

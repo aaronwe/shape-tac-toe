@@ -1,59 +1,92 @@
-/* Main Styles */
+/* 
+  Main Stylesheet 
+  
+  We separate our styles from our HTML to keep things clean.
+  This file uses CSS Variables (Custom Properties) to make it easy to change colors globally.
+*/
+
 :root {
+    /* Define colors one time here, use them everywhere with var(--name) */
     --bg-color: #f0f4f8;
+    /* Light grey-blue background */
     --text-color: #333;
+    /* Dark grey text (softer than black) */
     --hex-bg: #e0e0e0;
+    /* Default color of empty hexagons */
     --hex-hover: #d0d0d0;
+    /* Color when mouse is over a hex */
+
+    /* Player Colors */
     --player-red-color: #e63946;
     --player-blue-color: #457b9d;
+
     --grid-stroke: #fff;
+    /* White lines between hexes */
     --highlight-color: #ffd700;
+    /* Gold color for scoring animations */
 }
 
+/* Base Body Styles */
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background-color: var(--bg-color);
     color: var(--text-color);
     margin: 0;
     padding: 20px;
+
+    /* Center the main content on the screen */
     display: flex;
     justify-content: center;
 }
 
+/* Main Container Card */
 .container {
     max-width: 800px;
+    /* Don't get too wide on large screens */
     width: 100%;
     text-align: center;
     background: white;
     padding: 30px;
     border-radius: 12px;
+    /* Rounded corners */
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    /* Subtle shadow for depth */
 }
 
 h1 {
     margin-bottom: 0.5rem;
 }
 
+/* 
+  Flexbox Layout for the Game Info Dashboard 
+  Flexbox is great for arranging items in a row or column.
+*/
 .game-info {
     display: flex;
     justify-content: space-between;
+    /* Space out the Red card, Info, and Blue card */
     align-items: center;
+    /* Vertically center them */
     margin: 20px 0;
     padding: 10px;
     background: #f8f9fa;
     border-radius: 8px;
 }
 
-/* Score Cards */
+/* Player Score Cards */
 .score-card {
     padding: 10px 20px;
     position: relative;
+    /* Needed for absolute positioning of children inside */
     transition: transform 0.2s;
+    /* Smooth animation when scale changes */
     min-width: 120px;
 }
 
+/* Applied via JS when it's this player's turn */
 .score-card.active-turn {
     transform: scale(1.1);
+    /* Grow slightly larger */
     background: #e9ecef;
     border-radius: 8px;
 }
@@ -65,7 +98,7 @@ h1 {
     transition: color 0.3s;
 }
 
-/* Floating score animation */
+/* Floating score animation (+6 points popup) */
 .score-popup {
     position: absolute;
     top: -20px;
@@ -74,7 +107,9 @@ h1 {
     font-weight: bold;
     font-size: 1.5em;
     animation: floatUp 1s ease-out forwards;
+    /* Run the 'floatUp' Keyframe animation */
     pointer-events: none;
+    /* Let clicks pass through */
     text-shadow: 1px 1px 0 #000;
 }
 
@@ -86,22 +121,19 @@ h1 {
 
     100% {
         opacity: 0;
+        /* Fade out */
         transform: translateY(-30px);
+        /* Move Up */
     }
 }
 
-.player-red h2 {
-    color: var(--player-red-color);
-}
-
-.player-blue h2 {
-    color: var(--player-blue-color);
-}
-
+/* Color overrides for nested elements */
+.player-red h2,
 .player-red .score {
     color: var(--player-red-color);
 }
 
+.player-blue h2,
 .player-blue .score {
     color: var(--player-blue-color);
 }
@@ -114,20 +146,24 @@ h1 {
 
 #message-area {
     min-height: 1.2em;
+    /* Reserve height so layout doesn't jump */
     color: #d62828;
     font-weight: bold;
 }
 
+/* Board Styling */
 .board-container {
     display: flex;
     justify-content: center;
     margin: 20px 0;
     overflow: auto;
+    /* Scroll if window is too small */
 }
 
-/* SVG Styling */
+/* SVG Polygon (Hexagon) Styling */
 polygon {
     fill: var(--hex-bg);
+    /* Default fill */
     stroke: var(--grid-stroke);
     stroke-width: 2px;
     cursor: pointer;
@@ -138,19 +174,19 @@ polygon:hover {
     fill: var(--hex-hover);
 }
 
-/* Dynamic hover color based on turn is handled via JS class injection on container or explicit style? 
-   No, let's use body classes or container classes for turn-based hover.
-*/
+/* Visual cue for whose turn it is on hover */
 .turn-red polygon:not(.occupied):hover {
     fill: #ffbdc3;
-    /* Light red */
 }
 
+/* Light red */
 .turn-blue polygon:not(.occupied):hover {
     fill: #a8dadc;
-    /* Light blue */
 }
 
+/* Light blue */
+
+/* Placed markers */
 .hex-marker-red {
     fill: var(--player-red-color) !important;
 }
@@ -159,17 +195,11 @@ polygon:hover {
     fill: var(--player-blue-color) !important;
 }
 
-.hex-last-move {
-    filter: brightness(1.2);
-    stroke: #333;
-    /* Darker border for emphasis */
-}
-
+/* Highlight newly scored shapes (Gold Outline) */
 .hex-scoring {
     stroke: var(--highlight-color);
     stroke-width: 4px;
     z-index: 10;
-    /* Doesn't work on SVG elements the same way, but stroke width helps */
     animation: pulse 1s infinite alternate;
 }
 
@@ -183,6 +213,7 @@ polygon:hover {
     }
 }
 
+/* UI Controls */
 .controls {
     margin: 20px 0;
     display: flex;
@@ -216,20 +247,27 @@ button:hover {
     border-radius: 8px;
 }
 
-/* Modal Styling */
+/* 
+  Modal (Popup) Styling 
+  Includes overlay (dark background) and content box.
+*/
 .modal-overlay {
     position: fixed;
+    /* Stays in place even if you scroll */
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
     background: rgba(0, 0, 0, 0.5);
+    /* Semi-transparent black */
     display: flex;
     justify-content: center;
     align-items: center;
     z-index: 1000;
+    /* Ensure it sits on top of everything */
     opacity: 0;
     pointer-events: none;
+    /* Can't click it when hidden */
     transition: opacity 0.3s ease;
 }
 
@@ -284,11 +322,9 @@ button:hover {
     font-size: 1.1em;
 }
 
-/* Shape Scoring Label */
+/* Shape Scoring Label (e.g., "+6") */
 .shape-score-label {
     position: absolute;
-    /* Relative to board container? No, needs to be precise relative to SVG */
-    /* Handled via JS absolute positioning over the board container */
     background: rgba(255, 215, 0, 0.9);
     color: #333;
     padding: 4px 8px;
@@ -297,7 +333,6 @@ button:hover {
     font-size: 1em;
     pointer-events: none;
     transform: translate(-50%, -50%) scale(0);
-    /* Center on point */
     animation: popIn 0.3s forwards;
     z-index: 20;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
@@ -311,6 +346,7 @@ button:hover {
 
     80% {
         transform: translate(-50%, -50%) scale(1.2);
+        /* Bouncy effect */
         opacity: 1;
     }
 
@@ -318,10 +354,9 @@ button:hover {
         transform: translate(-50%, -50%) scale(1);
         opacity: 1;
     }
-
 }
 
-/* Score Log */
+/* Score Log (Toggleable List) */
 .score-log-container {
     position: relative;
     width: 100%;
@@ -354,6 +389,7 @@ button:hover {
 
 .score-log-container.active .arrow {
     transform: rotate(180deg);
+    /* Flip arrow when open */
 }
 
 .score-log-content {
