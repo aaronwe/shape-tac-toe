@@ -34,92 +34,59 @@
     -->
     <script type="py" src="./client_game.py" config="./pyscript.toml"></script>
 
-    <div class="container">
-        <!-- Header Section -->
-        <header>
-            <h1>Shape Tac Toe</h1>
-            <p>Form shapes to score points!</p>
+    <div class="main-wrapper">
+        <!-- Header & Top Bar -->
+        <header class="app-header">
+            <div class="header-left">
+                <h1>Shape Tac Toe</h1>
+            </div>
+            <div class="header-right">
+                <button id="open-new-game-btn" class="icon-btn" title="Game Options">
+                    ⚙️ Options
+                </button>
+            </div>
         </header>
 
-        <!-- Game Info Dashboard -->
-        <div class="game-info">
-            <!-- Red Player Card -->
-            <div class="score-card player-red" id="card-red">
-                <h2>Red</h2>
-                <div class="pieces-left" id="pieces-red">Pieces: --</div>
-                <span class="score" id="score-red">0</span>
-                <div class="last-turn-score" id="last-turn-red">Last Turn: 0</div>
-
-                <!-- Toggleable Log for Red's scoring history -->
-                <div class="score-log-container player-log" id="log-container-red">
-                    <button class="score-log-toggle-mini" id="toggle-red">
-                        Log <span class="arrow" id="arrow-red">▼</span>
-                    </button>
-                    <!-- Hidden by default -->
-                    <div id="log-content-red" class="score-log-content hidden">
-                        <ul id="score-log-list-red"></ul>
-                    </div>
+        <!-- Game Info / Scoreboard -->
+        <div class="scoreboard">
+            <!-- Red Player -->
+            <div class="player-card player-red" id="card-red">
+                <div class="player-info">
+                    <span class="player-name">Red</span>
+                    <span class="pieces-count" id="pieces-red">-- left</span>
+                </div>
+                <div class="player-score">
+                    <span class="score" id="score-red">0</span>
+                    <span class="last-turn" id="last-turn-red">(+0)</span>
                 </div>
             </div>
 
-            <!-- Center Status Panel -->
-            <div class="center-panel">
-                <div class="status-panel">
-                    <div id="turn-indicator">Turn: Red</div>
-                    <div id="message-area"></div>
-                </div>
+            <!-- Status / Turn Indicator -->
+            <div class="game-status">
+                <div id="turn-indicator">Turn: Red</div>
+                <div id="goal-info">Goal: <span id="goal-display">25</span> Rnds</div>
             </div>
 
-            <!-- Blue Player Card -->
-            <div class="score-card player-blue" id="card-blue">
-                <h2>Blue</h2>
-                <div class="pieces-left" id="pieces-blue">Pieces: --</div>
-                <span class="score" id="score-blue">0</span>
-                <div class="last-turn-score" id="last-turn-blue">Last Turn: 0</div>
-
-                <div class="score-log-container player-log" id="log-container-blue">
-                    <button class="score-log-toggle-mini" id="toggle-blue">
-                        Log <span class="arrow" id="arrow-blue">▼</span>
-                    </button>
-                    <div id="log-content-blue" class="score-log-content hidden">
-                        <ul id="score-log-list-blue"></ul>
-                    </div>
+            <!-- Blue Player -->
+            <div class="player-card player-blue" id="card-blue">
+                <div class="player-info">
+                    <span class="player-name">Blue</span>
+                    <span class="pieces-count" id="pieces-blue">-- left</span>
+                </div>
+                <div class="player-score">
+                    <span class="score" id="score-blue">0</span>
+                    <span class="last-turn" id="last-turn-blue">(+0)</span>
                 </div>
             </div>
         </div>
 
-        <!-- 
-            Game Board Container:
-            We use an SVG (Scalable Vector Graphics) to draw the hexagonal grid.
-            SVGs are great for geometric shapes because they remain crisp at any size.
-        -->
-        <div id="game-board" class="board-container" style="position:relative;">
-            <!-- 
-                The SVG Element. 
-                width/height: Dimensions in pixels.
-                The hexagons will be drawn inside this tag by JavaScript.
-            -->
-            <svg id="hex-grid" width="600" height="600"></svg>
-            <!-- Scoring overlay labels will be dynamically injected here by JS -->
-        </div>
-
-        <div class="controls">
-            <!-- Opens the "New Game Setup" modal -->
-            <button id="open-new-game-btn">Game Options</button>
-        </div>
-
-        <!-- Rules Section -->
-        <div class="rules">
-            <h3>Scoring Rules</h3>
-            <ul>
-                <li>Line of 3: 1 pt (3=1, 4=3, 5=6, 6=10...)</li>
-                <li>Loop: 15 pts</li>
-                <li>Triangles: Size * 5 (Size 3=15 pts...)</li>
-                <li>Hollow Shapes: +4 pts (3x3), +8 pts (4x4)</li>
-                <li><strong>Goal: Highest Score after <span id="goal-display">25</span> Rounds!</strong></li>
-                <li><em>(Strategic Tip: Bonus Tiles are 2x points!)</em></li>
-            </ul>
-        </div>
+        <!-- Main Game Area -->
+        <main class="game-area">
+            <div id="game-board" class="board-container">
+                <svg id="hex-grid" viewBox="0 0 600 600" preserveAspectRatio="xMidYMid meet"></svg>
+            </div>
+            <div id="message-area"></div>
+        </main>
     </div>
 
     <!-- 
