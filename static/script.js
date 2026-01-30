@@ -250,10 +250,23 @@ function updateUI(state) {
             turnDiv.innerText = `LAST TURN: Blue`;
             msgDiv.innerText = "Blue gets one final chance!";
         } else {
+            // Updated: Show simplistic turn status here
             turnDiv.innerText = `Turn: ${state.current_player}`;
-            msgDiv.innerText = "";
+            msgDiv.innerText = `Round ${(Math.floor(state.turn_index / 2) + 1)} / ${state.max_rounds}`;
         }
     }
+
+    // Update Pieces Left
+    // Turn Index counts COMPLETED moves (starts at 0).
+    // Red moves = ceil(turn_index / 2)
+    // Blue moves = floor(turn_index / 2)
+    const redPlayed = Math.ceil(state.turn_index / 2);
+    const bluePlayed = Math.floor(state.turn_index / 2);
+
+    const maxRounds = state.max_rounds || 25; // Default to 25 if undefined
+
+    document.getElementById('pieces-red').innerText = `Pieces: ${Math.max(0, maxRounds - redPlayed)}`;
+    document.getElementById('pieces-blue').innerText = `Pieces: ${Math.max(0, maxRounds - bluePlayed)}`;
 }
 
 /**
@@ -315,22 +328,22 @@ function renderBoard(state) {
     const board = state.board;
 
     for (const key in board) {
-        // key is "q,r,s" (or just q,r depending on Python, but likely q,r,s here)
-        // We only need q and r.
+        // key is "q,r,s" 
         const parts = key.split(',');
         const q = parseInt(parts[0]);
         const r = parseInt(parts[1]);
         const marker = board[key]; // 'Red', 'Blue', or null
+        const bonus = state.bonuses ? state.bonuses[key] : null;
 
         const center = hexToPixel(q, r);
-        drawHex(svg, center.x, center.y, q, r, marker);
+        drawHex(svg, center.x, center.y, q, r, marker, bonus);
     }
 }
 
 /**
  * Creates a single Polygon element and appends it to the SVG.
  */
-function drawHex(svg, x, y, q, r, marker) {
+function drawHex(svg, x, y, q, r, marker, bonusMultiplier) {
     // Generate the 6 points of the hexagon
     const points = [];
     for (let i = 0; i < 6; i++) {
@@ -348,13 +361,18 @@ function drawHex(svg, x, y, q, r, marker) {
     poly.setAttribute("data-key", `${q},${r}`);
 
     // Apply CSS classes based on state
+    let classes = "";
     if (marker === 'Red') {
-        poly.setAttribute("class", "hex-marker-red occupied");
+        classes = "hex-marker-red occupied";
     } else if (marker === 'Blue') {
-        poly.setAttribute("class", "hex-marker-blue occupied");
-    } else {
-        poly.setAttribute("class", "");
+        classes = "hex-marker-blue occupied";
     }
+
+    if (bonusMultiplier && bonusMultiplier > 1) {
+        classes += " hex-bonus";
+    }
+
+    poly.setAttribute("class", classes.trim());
 
     // Attach Click Handler
     poly.onclick = () => onHexClick(q, r);
@@ -423,6 +441,8 @@ function formatShapeName(shape) {
     } else if (type.startsWith('hollow')) {
         const dim = type.split('_')[1];
         return `Hollow Hex (${dim})`; // e.g. 3x3
+    } else if (type === 'variety_bonus') {
+        return "Variety Bonus (Jackpot!)";
     }
     return type.charAt(0).toUpperCase() + type.slice(1);
 }

@@ -1,274 +1,202 @@
-/* 
-  Main Stylesheet 
-  
-  We separate our styles from our HTML to keep things clean.
-  This file uses CSS Variables (Custom Properties) to make it easy to change colors globally.
-*/
-
-:root {
-    /* Define colors one time here, use them everywhere with var(--name) */
-    --bg-color: #f0f4f8;
-    /* Light grey-blue background */
-    --text-color: #333;
-    /* Dark grey text (softer than black) */
-    --hex-bg: #e0e0e0;
-    /* Default color of empty hexagons */
-    --hex-hover: #d0d0d0;
-    /* Color when mouse is over a hex */
-
-    /* Player Colors */
-    --player-red-color: #e63946;
-    --player-blue-color: #457b9d;
-
-    --grid-stroke: #fff;
-    /* White lines between hexes */
-    --highlight-color: #ffd700;
-    /* Gold color for scoring animations */
-}
-
-/* Base Body Styles */
-body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background-color: var(--bg-color);
-    color: var(--text-color);
-    margin: 0;
-    padding: 20px;
-
-    /* Center the main content on the screen */
-    display: flex;
-    justify-content: center;
-}
-
-/* Main Container Card */
-.container {
-    max-width: 800px;
-    /* Don't get too wide on large screens */
-    width: 100%;
-    text-align: center;
-    background: white;
-    padding: 30px;
-    border-radius: 12px;
-    /* Rounded corners */
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    /* Subtle shadow for depth */
-}
-
-h1 {
-    margin-bottom: 0.5rem;
-}
-
-/* 
-  Flexbox Layout for the Game Info Dashboard 
-  Flexbox is great for arranging items in a row or column.
-*/
-.game-info {
-    display: flex;
-    justify-content: space-between;
-    /* Space out the Red card, Info, and Blue card */
-    align-items: center;
-    /* Vertically center them */
-    margin: 20px 0;
-    padding: 10px;
-    background: #f8f9fa;
-    border-radius: 8px;
-}
-
-/* Player Score Cards */
-.score-card {
-    padding: 10px 20px;
-    position: relative;
-    /* Needed for absolute positioning of children inside */
-    transition: transform 0.2s;
-    /* Smooth animation when scale changes */
-    min-width: 120px;
-}
-
-/* Applied via JS when it's this player's turn */
-.score-card.active-turn {
-    transform: scale(1.1);
-    /* Grow slightly larger */
-    background: #e9ecef;
-    border-radius: 8px;
-}
-
-.score {
-    font-size: 2em;
-    font-weight: bold;
-    display: block;
-    transition: color 0.3s;
-}
-
-/* Floating score animation (+6 points popup) */
-.score-popup {
-    position: absolute;
-    top: -20px;
-    right: 10px;
-    color: var(--highlight-color);
-    font-weight: bold;
-    font-size: 1.5em;
-    animation: floatUp 1s ease-out forwards;
-    /* Run the 'floatUp' Keyframe animation */
-    pointer-events: none;
-    /* Let clicks pass through */
-    text-shadow: 1px 1px 0 #000;
-}
-
-@keyframes floatUp {
-    0% {
-        opacity: 1;
-        transform: translateY(0);
-    }
-
-    100% {
-        opacity: 0;
-        /* Fade out */
-        transform: translateY(-30px);
-        /* Move Up */
-    }
-}
-
-/* Color overrides for nested elements */
-.player-red h2,
-.player-red .score {
-    color: var(--player-red-color);
-}
-
-.player-blue h2,
-.player-blue .score {
-    color: var(--player-blue-color);
-}
-
-#turn-indicator {
-    font-size: 1.2em;
-    font-weight: bold;
-    margin-bottom: 5px;
-}
-
-#message-area {
-    min-height: 1.2em;
-    /* Reserve height so layout doesn't jump */
-    color: #d62828;
-    font-weight: bold;
-}
-
-/* Board Styling */
-.board-container {
-    display: flex;
-    justify-content: center;
-    margin: 20px 0;
-    overflow: auto;
-    /* Scroll if window is too small */
-}
-
-/* SVG Polygon (Hexagon) Styling */
+/* Base Hex Styles */
 polygon {
-    fill: var(--hex-bg);
-    /* Default fill */
-    stroke: var(--grid-stroke);
-    stroke-width: 2px;
+    fill: #f0f0f0;
+    stroke: #aaa;
+    stroke-width: 1px;
     cursor: pointer;
-    transition: fill 0.2s, stroke 0.3s, stroke-width 0.3s;
+    /* Makes it clear they are clickable */
+    transition: fill 0.2s, transform 0.1s;
 }
 
 polygon:hover {
-    fill: var(--hex-hover);
+    fill: #e0e0e0;
 }
 
-/* Visual cue for whose turn it is on hover */
-.turn-red polygon:not(.occupied):hover {
-    fill: #ffbdc3;
-}
-
-/* Light red */
-.turn-blue polygon:not(.occupied):hover {
-    fill: #a8dadc;
-}
-
-/* Light blue */
-
-/* Placed markers */
+/* Markers */
 .hex-marker-red {
-    fill: var(--player-red-color) !important;
+    fill: #ff6b6b !important;
+    stroke: #c03939;
 }
 
 .hex-marker-blue {
-    fill: var(--player-blue-color) !important;
+    fill: #4dabf7 !important;
+    stroke: #228be6;
 }
 
-/* Highlight newly scored shapes (Gold Outline) */
+/* Turn Indication: Hover effects */
+body.turn-red polygon:not(.occupied):hover {
+    fill: #ffcccc;
+}
+
+body.turn-blue polygon:not(.occupied):hover {
+    fill: #cce0ff;
+}
+
+/* Used during animation */
 .hex-scoring {
-    stroke: var(--highlight-color);
-    stroke-width: 4px;
+    fill: #ffd43b !important;
+    /* Gold flash */
+    stroke: #f08c00;
+    stroke-width: 3px;
+    filter: drop-shadow(0 0 5px gold);
     z-index: 10;
-    animation: pulse 1s infinite alternate;
 }
 
-@keyframes pulse {
-    from {
-        stroke-opacity: 1;
-    }
-
-    to {
-        stroke-opacity: 0.5;
-    }
+/* Bonus Tiles */
+.hex-bonus {
+    fill: #fff3bf;
+    /* Light yellow base */
+    stroke: #fcc419;
+    stroke-width: 2px;
 }
 
-/* UI Controls */
-.controls {
-    margin: 20px 0;
-    display: flex;
-    justify-content: center;
-    gap: 20px;
-    align-items: center;
+.hex-bonus:hover {
+    fill: #ffec99;
 }
 
-button {
-    padding: 10px 20px;
-    font-size: 1em;
-    cursor: pointer;
-    background-color: #26547c;
-    color: white;
+/* If occupied, keep marker color but show gold border */
+.hex-bonus.occupied {
+    stroke: #fcc419;
+    stroke-width: 3px;
+}
+
+/* Floating Labels */
+.shape-score-label {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    color: #fce83a;
+    font-weight: bold;
+    font-size: 24px;
+    text-shadow: 2px 2px 0px #000;
+    pointer-events: none;
+    animation: floatUp 1s ease-out forwards;
+    z-index: 20;
+}
+
+/* Logs */
+.score-log-container {
+    margin-top: 10px;
+}
+
+.score-log-toggle-mini {
+    background: none;
     border: none;
-    border-radius: 5px;
-    transition: background-color 0.2s;
+    color: #555;
+    font-size: 0.8rem;
+    cursor: pointer;
+    padding: 0;
 }
 
-button:hover {
-    background-color: #1d405e;
+.score-log-content.hidden {
+    display: none;
 }
 
-.rules {
-    text-align: left;
-    margin-top: 30px;
-    font-size: 0.9em;
-    color: #666;
-    background: #fafafa;
+.score-log-content ul {
+    list-style: none;
+    padding-left: 0;
+    font-size: 0.9rem;
+    max-height: 100px;
+    overflow-y: auto;
+}
+
+.score-log-empty {
+    font-style: italic;
+    color: #999;
+}
+
+/* General Layout */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    text-align: center;
+    background-color: #fafafa;
+    color: #333;
+}
+
+.container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.game-info {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+
+.score-card {
+    background: white;
     padding: 15px;
-    border-radius: 8px;
+    border-radius: 10px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    width: 200px;
+    position: relative;
+    transition: transform 0.2s, box-shadow 0.2s;
 }
 
-/* 
-  Modal (Popup) Styling 
-  Includes overlay (dark background) and content box.
-*/
+.score-card.active-turn {
+    transform: scale(1.05);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    border: 2px solid #ccc;
+}
+
+.pieces-left {
+    font-size: 0.9rem;
+    color: #666;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+.player-red h2 {
+    color: #e03131;
+}
+
+.player-blue h2 {
+    color: #1971c2;
+}
+
+.score {
+    font-size: 2.5rem;
+    font-weight: bold;
+    display: block;
+}
+
+.center-panel {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+}
+
+.status-panel {
+    background: white;
+    padding: 10px 20px;
+    border-radius: 20px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    font-weight: bold;
+}
+
+#message-area {
+    color: #555;
+    margin-top: 5px;
+    font-size: 0.9rem;
+}
+
+/* Modal */
 .modal-overlay {
     position: fixed;
-    /* Stays in place even if you scroll */
     top: 0;
     left: 0;
-    width: 100%;
-    height: 100%;
+    right: 0;
+    bottom: 0;
     background: rgba(0, 0, 0, 0.5);
-    /* Semi-transparent black */
     display: flex;
     justify-content: center;
     align-items: center;
-    z-index: 1000;
-    /* Ensure it sits on top of everything */
+    z-index: 100;
     opacity: 0;
     pointer-events: none;
-    /* Can't click it when hidden */
-    transition: opacity 0.3s ease;
+    transition: opacity 0.2s;
 }
 
 .modal-overlay.active {
@@ -279,154 +207,91 @@ button:hover {
 .modal-content {
     background: white;
     padding: 30px;
-    border-radius: 12px;
-    width: 90%;
-    max-width: 400px;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    border-radius: 10px;
+    width: 400px;
     text-align: left;
 }
 
-.modal-content h2 {
-    margin-top: 0;
-    color: #333;
-    text-align: center;
-}
-
 .form-group {
-    margin-bottom: 20px;
+    margin-bottom: 15px;
 }
 
 .form-group label {
     display: block;
-    margin-bottom: 8px;
+    margin-bottom: 5px;
     font-weight: bold;
 }
 
-.form-group select,
-.form-group input {
+.form-group select {
     width: 100%;
     padding: 8px;
-    font-size: 1em;
+    border-radius: 5px;
     border: 1px solid #ccc;
-    border-radius: 4px;
-}
-
-.modal-actions {
-    text-align: center;
-    margin-top: 25px;
 }
 
 .modal-actions button {
     width: 100%;
-    padding: 12px;
-    font-size: 1.1em;
+    padding: 10px;
+    background: #228be6;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    font-size: 1.1rem;
+    cursor: pointer;
 }
 
-/* Shape Scoring Label (e.g., "+6") */
-.shape-score-label {
-    position: absolute;
-    background: rgba(255, 215, 0, 0.9);
-    color: #333;
-    padding: 4px 8px;
-    border-radius: 12px;
-    font-weight: bold;
-    font-size: 1em;
-    pointer-events: none;
-    transform: translate(-50%, -50%) scale(0);
-    animation: popIn 0.3s forwards;
-    z-index: 20;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+.modal-actions button:hover {
+    background: #1c7ed6;
 }
 
-@keyframes popIn {
+/* Animations */
+@keyframes floatUp {
     0% {
-        transform: translate(-50%, -50%) scale(0);
+        transform: translate(-50%, -50%) scale(0.5);
         opacity: 0;
     }
 
+    20% {
+        transform: translate(-50%, -80%) scale(1.2);
+        opacity: 1;
+    }
+
     80% {
-        transform: translate(-50%, -50%) scale(1.2);
-        /* Bouncy effect */
+        transform: translate(-50%, -150%) scale(1);
         opacity: 1;
     }
 
     100% {
-        transform: translate(-50%, -50%) scale(1);
-        opacity: 1;
+        transform: translate(-50%, -200%) scale(1);
+        opacity: 0;
     }
 }
 
-/* Score Log (Toggleable List) */
-.score-log-container {
-    position: relative;
-    width: 100%;
-    margin-top: 10px;
+.score-popup {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: #ffd43b;
+    color: #333;
+    padding: 5px 10px;
+    border-radius: 10px;
+    font-weight: bold;
+    animation: popFade 1s forwards;
 }
 
-.score-log-toggle-mini {
-    background-color: transparent;
-    color: #555;
-    border: 1px solid #ddd;
-    font-size: 0.8em;
-    padding: 4px 8px;
-    width: 100%;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: background-color 0.2s;
-}
+@keyframes popFade {
+    0% {
+        transform: scale(0);
+        opacity: 0;
+    }
 
-.score-log-toggle-mini:hover {
-    background-color: #f0f0f0;
-}
+    20% {
+        transform: scale(1.2);
+        opacity: 1;
+    }
 
-.arrow {
-    transition: transform 0.2s;
-    font-size: 0.8em;
-}
-
-.score-log-container.active .arrow {
-    transform: rotate(180deg);
-    /* Flip arrow when open */
-}
-
-.score-log-content {
-    display: none;
-    margin-top: 4px;
-    background: #fff;
-    border: 1px solid #eee;
-    border-radius: 4px;
-    padding: 0;
-    list-style: none;
-    max-height: 150px;
-    overflow-y: auto;
-    font-size: 0.85em;
-    text-align: left;
-}
-
-.score-log-container.active .score-log-content {
-    display: block;
-}
-
-.score-log-content.hidden {
-    display: none;
-}
-
-#score-log-list-red,
-#score-log-list-blue {
-    padding: 0;
-    margin: 0;
-    list-style: none;
-}
-
-.score-log-content li {
-    padding: 4px 8px;
-    border-bottom: 1px solid #f5f5f5;
-    color: #444;
-}
-
-.score-log-content li:last-child {
-    border-bottom: none;
+    100% {
+        transform: translateY(-20px);
+        opacity: 0;
+    }
 }

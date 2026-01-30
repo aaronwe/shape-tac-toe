@@ -1,6 +1,7 @@
 import js
 from pyscript import when
 from game import Game
+from ai_player import EasyPlayer, GreedyPlayer, ThoughtfulPlayer, GeniusPlayer, MinimaxPlayer
 import json
 
 # Global game instance
@@ -31,21 +32,39 @@ def start_new_game(event=None):
     
     # Read configuration values directly from the HTML DOM using the 'js' module
     player_mode = js.document.getElementById('player-mode').value
-    winning_score_val = js.document.getElementById('winning-score').value
+    ai_difficulty = js.document.getElementById('ai-difficulty').value
+    max_rounds_val = js.document.getElementById('game-length').value
     
     # Determine if AI is enabled (Mode '1' = 1 Player vs AI)
     ai_enabled = (player_mode == '1')
     
-    # Parse winning score string to integer (or None for Unlimited)
-    winning_score = None
-    if winning_score_val and winning_score_val != "None":
+    player_agents = {}
+    if ai_enabled:
+        # P2 (Blue) is the AI
+        if ai_difficulty == 'easy':
+            player_agents['Blue'] = EasyPlayer('Blue')
+        elif ai_difficulty == 'greedy':
+            player_agents['Blue'] = GreedyPlayer('Blue')
+        elif ai_difficulty == 'thoughtful':
+            player_agents['Blue'] = ThoughtfulPlayer('Blue')
+        elif ai_difficulty == 'smart':
+             player_agents['Blue'] = MinimaxPlayer('Blue', depth=2)
+        elif ai_difficulty == 'genius':
+             player_agents['Blue'] = GeniusPlayer('Blue')
+        else:
+             # Fallback
+             player_agents['Blue'] = GreedyPlayer('Blue')
+
+    # Parse max rounds
+    max_rounds = 25
+    if max_rounds_val:
         try:
-            winning_score = int(winning_score_val)
+            max_rounds = int(max_rounds_val)
         except:
-            winning_score = 40
+            max_rounds = 25
             
     # Initialize the Game Logic Class
-    game_instance = Game(size=4, winning_score=winning_score)
+    game_instance = Game(size=6, max_rounds=max_rounds, player_agents=player_agents)
     
     # Prepare the initial state to send to the UI
     # We use json.dumps to turn the Python Dict into a JSON String.
@@ -58,8 +77,7 @@ def start_new_game(event=None):
     js.hideModal()
     
     # Update the "Goal" text in the UI
-    goal_text = "Unlimited" if winning_score is None else str(winning_score)
-    js.document.getElementById('goal-display').innerText = goal_text
+    js.document.getElementById('goal-display').innerText = str(max_rounds)
     
     # Tell the JS frontend if the AI is active (so it can block input during AI turns)
     js.setAiEnabled(ai_enabled)

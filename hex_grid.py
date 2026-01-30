@@ -77,27 +77,24 @@ class HexGrid:
     This class handles the storage of the game state (which cell has which marker).
     It generates a hexagonal-shaped map based on a "radius".
     """
-    def __init__(self, radius=4):
+    def __init__(self, radius=6):
         self.radius = radius
         # Dictionary to store the board state.
         # Key: Hex object (location)
         # Value: Content string ('Red', 'Blue', or None if empty)
         self.cells = {} 
+        self.bonuses = {}
         self._generate_board()
 
     def _generate_board(self):
         """
-        Creates the keys for the self.cells dictionary.
-        Logic: We iterate q from -radius to +radius.
-        Then we iterate r, but r is constrained because we need to stay within the hex shape.
+        Generates the hexagonal grid coordinates.
         """
         for q in range(-self.radius, self.radius + 1):
-            # The range of r depends on q to maintain the hexagonal shape
-            r1 = max(-self.radius, -q - self.radius)
-            r2 = min(self.radius, -q + self.radius)
-            for r in range(r1, r2 + 1):
-                # Initialize every valid cell as Empty (None)
-                self.cells[Hex(q, r)] = None
+            for r in range(-self.radius, self.radius + 1):
+                s = -q - r
+                if abs(s) <= self.radius:
+                    self.cells[Hex(q, r, s)] = None
 
     def get_content(self, hex_cell):
         # Safely get what's at a specific coordinate

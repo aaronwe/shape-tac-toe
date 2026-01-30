@@ -41,6 +41,21 @@ class Scorer:
         total_score += s_tri
         all_shapes.extend(shapes_tri)
 
+        # 5. Variety Bonus
+        # Incentivize shape diversity: Line + Triangle + Loop/Hollow = +30 pts
+        has_line = any(s['type'].startswith('line') for s in all_shapes)
+        has_triangle = any(s['type'].startswith('triangle') for s in all_shapes)
+        has_loop_or_hollow = any(s['type'] in ('loop', 'hollow_3x3', 'hollow_4x4') for s in all_shapes)
+        
+        if has_line and has_triangle and has_loop_or_hollow:
+            bonus = 30
+            total_score += bonus
+            all_shapes.append({
+                'type': 'variety_bonus',
+                'points': bonus,
+                'cells': frozenset() 
+            })
+
         return total_score, all_shapes
 
     def _score_lines(self, marker):
@@ -87,13 +102,19 @@ class Scorer:
                 
                 # If the line is long enough (3+), add points
                 if length >= 3:
-                     # Formula: 1 point for the first 3, plus 1 point for each extra
-                     pts = 1 + (length - 3)
+                     # New Rule: Triangular Scoring (Nerfed from Exponential)
+                     # Length 3: 1 pt
+                     # Length 4: 3 pts
+                     # Length 5: 6 pts
+                     # Length 6: 10 pts
+                     n = length - 2
+                     base_pts = int(n * (n + 1) / 2)
+                     pts = self._calculate_points(base_pts, line_cells)
                      score += pts
                      shapes.append({
                          'type': 'line',
                          'points': pts,
-                         'cells': frozenset(line_cells) # frozenset is an immutable set (can be hashed)
+                         'cells': frozenset(line_cells) 
                      })
                      
         return score, shapes
@@ -142,7 +163,8 @@ class Scorer:
                     loop_id = frozenset(loop_cells)
                     if loop_id not in found_loops:
                         found_loops.add(loop_id)
-                        pts = 6
+                        base_pts = 15
+                        pts = self._calculate_points(base_pts, loop_cells)
                         score += pts
                         shapes.append({
                             'type': 'loop',
@@ -215,11 +237,13 @@ class Scorer:
                         shape_id = frozenset(path_vertices)
                         if shape_id not in found_hollows:
                             found_hollows.add(shape_id)
-                            score += points
+                            # points is loop var (base points)
+                            pts = self._calculate_points(points, path_vertices)
+                            score += pts
                             
                             shapes.append({
                                 'type': f'hollow_{side_dots}x{side_dots}',
-                                'points': points,
+                                'points': pts,
                                 'cells': shape_id
                             })
                         
@@ -228,7 +252,7 @@ class Scorer:
     def _score_triangles(self, marker):
         """
         Finds FILLED triangles of various sizes.
-        Size 2 triangle = 3 dots (pyramid).
+        Size 2 triangle = Removed (Too easy).
         Size 3 triangle = 6 dots.
         """
         score = 0
@@ -241,8 +265,8 @@ class Scorer:
             Hex(-1, 1, 0), Hex(-1, 0, 1), Hex(0, -1, 1)
         ]
         
-        # Iterate sizes: 2 "dots wide" up to 8
-        for size in range(2, 9):
+        # Iterate sizes: 3 "dots wide" up to 8 (Removed Size 2)
+        for size in range(3, 9):
             for cell in player_cells:
                 # A triangle is defined by 2 direction vectors (edges from a vertex)
                 for i in range(6):
@@ -269,11 +293,14 @@ class Scorer:
                         if not valid:
                             break
                     
-                    if valid:
+                if valid:
                         t_id = frozenset(triangle_pixels)
                         if t_id not in found_triangles:
                             found_triangles.add(t_id)
-                            points = 1 if size == 2 else size
+                            # New Scoring: Size * 5
+                            # Size 3 = 15 pts (High value)
+                            base_pts = size * 5
+                            points = self._calculate_points(base_pts, triangle_pixels)
                             score += points
                             shapes.append({
                                 'type': f'triangle_{size}',
@@ -282,3 +309,16 @@ class Scorer:
                             })
                             
         return score, shapes
+
+    def _calculate_points(self, base_points, cells):
+        """
+        Applies bonus multipliers from the grid.
+        If any cell in the shape is on a bonus tile, multiply the score.
+        """
+        multiplier = 1
+        # Check if grid has bonuses attribute (handling case where it might not)
+        if hasattr(self.grid, 'bonuses'):
+            for cell in cells:
+                multiplier *= self.grid.bonuses.get(cell, 1)
+        return base_points * multiplier
+

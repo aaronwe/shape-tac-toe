@@ -1,6 +1,6 @@
 from hex_grid import HexGrid, Hex
 from scorer import Scorer
-import random
+
 
 class Game:
     """
@@ -12,7 +12,7 @@ class Game:
     3. The Scores (calculating and updating)
     4. The Win Conditions
     """
-    def __init__(self, size=4, winning_score=40):
+    def __init__(self, size=4, max_rounds=25, player_agents=None):
         # Initialize the hexagonal grid
         self.grid = HexGrid(radius=size)
         # Initialize the scorer with our grid
@@ -20,14 +20,28 @@ class Game:
         
         # Player configuration
         self.players = ['Red', 'Blue']
+        # Default agents: None means Human (or external controller)
+        self.agents = player_agents if player_agents else {'Red': None, 'Blue': None}
+        
         self.turn_index = 0
         self.scores = {'Red': 0, 'Blue': 0}
+        
+        # Randomize start player
+        import random
+        random.shuffle(self.players)
+        
+        # Generate Bonus Tiles (5 random tiles get 2x multiplier)
+        all_hexes = list(self.grid.cells.keys())
+        if len(all_hexes) > 5:
+            bonus_hexes = random.sample(all_hexes, 5) 
+            for h in bonus_hexes:
+                self.grid.bonuses[h] = 2
         
         # Game status flags
         self.winner = None
         self.game_over = False
         self.log = [] # A list of string messages for the UI
-        self.winning_score = winning_score
+        self.max_rounds = max_rounds # Rounds per player
         
         # Tracking "New" Shapes:
         # We need to remember which shapes we've already scored so we don't
@@ -37,15 +51,56 @@ class Game:
         # Temporary state for the UI (to show animations)
         self.last_scoring_event = [] # List of new shapes from the last move
         self.last_turn_points = {'Red': 0, 'Blue': 0} # Points scored in the most recent turn for each player
-        self.last_turn_shapes = {'Red': [], 'Blue': []} # Shapes scored in the most recent turn for each player
-        
-        # Fairness flag: If Red wins, Blue gets one last turn.
-        self.final_turn = False 
+        self.last_turn_shapes = {'Red': [], 'Blue': []} # Shapes scored in the most recent turn for each player 
 
     def current_player(self):
         # Returns 'Red' or 'Blue' based on the turn index.
         # Even numbers = Red, Odd numbers = Blue.
         return self.players[self.turn_index % 2]
+    
+    def get_valid_moves(self):
+        """
+        Returns a list of Hex cells where a move is currently legal.
+        Rule: Must be within distance 2 of an existing tile (Loose Adjacency).
+        """
+        occupied = [h for h, m in self.grid.cells.items() if m is not None]
+        
+        # If board is empty, all empty cells are valid
+        if not occupied:
+            return [h for h, m in self.grid.cells.items() if m is None]
+            
+        # Collect all candidates within distance 2 of any occupied tile
+        candidates = set()
+        for cell in occupied:
+            # Dist 1 (Neighbors)
+            neighbors = cell.neighbors()
+            candidates.update(neighbors)
+            # Dist 2 (Neighbors of Neighbors)
+            for n in neighbors:
+                candidates.update(n.neighbors())
+        
+        # Filter for candidates that are actually on the board and empty
+        valid = []
+        for c in candidates:
+            if c in self.grid.cells and self.grid.cells[c] is None:
+                valid.append(c)
+                
+        return valid
+
+    def get_agent_move(self):
+        """
+        Request a move from the current player's agent (if one exists).
+        Returns (q, r) or None.
+        """
+        player = self.current_player()
+        agent = self.agents.get(player)
+        if agent:
+            # Delegate decision making to the agent
+            # We pass 'self' (the game instance) so the agent can inspect the board
+            move_hex = agent.get_move(self)
+            if move_hex:
+                return move_hex.q, move_hex.r
+        return None
 
     def play_move(self, q, r):
         """
@@ -59,6 +114,21 @@ class Game:
         player = self.current_player()
         
         # 1. Place the marker on the grid
+        # NEW RULE: Loose Adjacency w/ Distance 2
+        # Unless the board is empty, you must place near (dist<=2) an existing marker.
+        occupied = [h for h, m in self.grid.cells.items() if m is not None]
+        if occupied:
+            # Check if 'cell' is close enough to ANY occupied cell
+            # Optimization: We just need ONE occupied cell within dist 2
+            valid_adjacency = False
+            for op in occupied:
+                if cell.distance(op) <= 2:
+                    valid_adjacency = True
+                    break
+            
+            if not valid_adjacency:
+                return False, "Must play within range of existing tiles"
+
         if not self.grid.place_marker(cell, player):
             return False, "Invalid Move"
         
@@ -105,81 +175,34 @@ class Game:
 
     def ai_move(self):
         """
-        A simple Greedy AI.
-        It simulates every possible valid move and chooses the one that gives the most immediate points.
+        Trigger the current AI agent to move.
+        This provides backward compatibility with the existing API.
         """
-        if self.game_over:
-            return
-            
-        player = self.current_player()
-        
-        # Find all empty spots
-        valid_moves = [h for h, m in self.grid.cells.items() if m is None]
-        if not valid_moves:
-            return 
-            
-        best_move = None
-        best_score = -1
-        
-        current_score = self.scores[player]
-        
-        # Shuffle moves so the AI doesn't always pick the top-left one in case of ties
-        random.shuffle(valid_moves)
-        
-        for move in valid_moves:
-             # Simulation Step:
-             # 1. Pretend to place the marker
-            self.grid.cells[move] = player
-            
-            # 2. Check the score
-            score, _ = self.scorer.calculate_score(player)
-            
-            # 3. Revert the change (Clean up!)
-            self.grid.cells[move] = None
-            
-            # 4. Compare
-            if score > best_score:
-                best_score = score
-                best_move = move
-        
-        # Execute the best move found
-        if best_move:
-            self.play_move(best_move.q, best_move.r)
+        move = self.get_agent_move()
+        if move:
+            self.play_move(move[0], move[1])
 
     def _check_end_condition(self):
         """
         Checks if the game should end based on score or board fullness.
         """
-        # FAIRNESS LOGIC:
-        # If it's the "Final Turn" (initiated by Red reaching winning score), then the game is over after this turn (Blue's turn).
-        if self.final_turn:
-            self.game_over = True
-            self._determine_winner()
-            return
-
+    def _check_end_condition(self):
+        """
+        Checks if the game should end based on turn limit or board fullness.
+        """
         # Condition 1: Board Full
         if self.grid.is_full():
             self.game_over = True
             self._determine_winner()
             return
             
-        if self.winning_score is None:
-            return 
-            
-        current = self.current_player()
-        red_score = self.scores['Red']
-        blue_score = self.scores['Blue']
-
-        # Condition 2: Score Limit Reached
-        if red_score >= self.winning_score or blue_score >= self.winning_score:
-            if current == 'Blue': 
-                # If Blue triggered the win (or matched Red), game ends immediately
-                self.game_over = True
-                self._determine_winner()
-            else:
-                # If Red triggered the win, Blue gets one chance to catch up
-                self.final_turn = True
-                self.log.append("Last Turn for Blue!")
+        # Condition 2: Max Rounds Reached
+        # turn_index is the number of turns COMPLETED.
+        # If max_rounds is 25, that means 25 moves per player = 50 moves total.
+        if self.turn_index >= self.max_rounds * 2:
+            self.game_over = True
+            self._determine_winner()
+            return
 
     def _determine_winner(self):
         # Simply compare scores
@@ -228,6 +251,10 @@ class Game:
                 f"{h.q},{h.r},{h.s}": m 
                 for h, m in self.grid.cells.items()
             },
+            'bonuses': {
+                f"{h.q},{h.r},{h.s}": v 
+                for h, v in self.grid.bonuses.items()
+            },
             'scores': self.scores,
             'current_player': self.current_player(),
             'game_over': self.game_over,
@@ -235,7 +262,8 @@ class Game:
             'log': self.log[-5:], # send last 5 logs
             'last_scoring_event': game_last_shapes,
             'last_turn_shapes': last_turn_shapes_json,
-            'final_turn': self.final_turn,
-            'winning_score': self.winning_score,
+            'max_rounds': self.max_rounds,
+            'turn_index': self.turn_index,
+            'total_turns': self.max_rounds * 2,
             'last_turn_points': self.last_turn_points
         }

@@ -46,6 +46,7 @@
             <!-- Red Player Card -->
             <div class="score-card player-red" id="card-red">
                 <h2>Red</h2>
+                <div class="pieces-left" id="pieces-red">Pieces: --</div>
                 <span class="score" id="score-red">0</span>
                 <div class="last-turn-score" id="last-turn-red">Last Turn: 0</div>
 
@@ -72,6 +73,7 @@
             <!-- Blue Player Card -->
             <div class="score-card player-blue" id="card-blue">
                 <h2>Blue</h2>
+                <div class="pieces-left" id="pieces-blue">Pieces: --</div>
                 <span class="score" id="score-blue">0</span>
                 <div class="last-turn-score" id="last-turn-blue">Last Turn: 0</div>
 
@@ -110,12 +112,12 @@
         <div class="rules">
             <h3>Scoring Rules</h3>
             <ul>
-                <li>Line of 3: 1 pt (+1 per extra)</li>
-                <li>Loop (6-Hex Ring): 6 pts</li>
-                <li>Triangles: Size 2 (1pt), Size 3 (+3pts)...</li>
+                <li>Line of 3: 1 pt (3=1, 4=3, 5=6, 6=10...)</li>
+                <li>Loop: 15 pts</li>
+                <li>Triangles: Size * 5 (Size 3=15 pts...)</li>
                 <li>Hollow Shapes: +4 pts (3x3), +8 pts (4x4)</li>
-                <li><strong>Goal: First to <span id="goal-display">40</span> Points!</strong></li>
-                <li><em>(Fairness: If Red wins first, Blue gets one last turn)</em></li>
+                <li><strong>Goal: Highest Score after <span id="goal-display">25</span> Rounds!</strong></li>
+                <li><em>(Strategic Tip: Bonus Tiles are 2x points!)</em></li>
             </ul>
         </div>
     </div>
@@ -135,15 +137,22 @@
                     <option value="2">2 Players (Hotseat)</option>
                 </select>
             </div>
+            <div class="form-group" id="ai-difficulty-group">
+                <label>AI Difficulty</label>
+                <select id="ai-difficulty">
+                    <option value="easy">Easy</option>
+                    <option value="greedy" selected>Greedy</option>
+                    <option value="thoughtful">Thoughtful</option>
+                    <option value="smart">Smart</option>
+                    <option value="genius">Genius</option>
+                </select>
+            </div>
             <div class="form-group">
-                <label>Winning Score</label>
-                <select id="winning-score">
-                    <option value="20">20 Points (Short)</option>
-                    <option value="40" selected>40 Points (Standard)</option>
-                    <option value="50">50 Points</option>
-                    <option value="75">75 Points (Long)</option>
-                    <option value="100">100 Points (Epic)</option>
-                    <option value="None">Unlimited (Fill Board)</option>
+                <label>Game Length</label>
+                <select id="game-length">
+                    <option value="15">Short (15 Rounds)</option>
+                    <option value="25" selected>Medium (25 Rounds)</option>
+                    <option value="40">Long (40 Rounds)</option>
                 </select>
             </div>
             <div class="modal-actions">
