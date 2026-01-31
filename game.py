@@ -235,7 +235,7 @@ class Game:
         # The game ends if we reach whichever limit is lower
         turn_limit = min(max_turns_rounds, effective_capacity)
         
-        if self.turn_index >= turn_limit:
+        if self.turn_index + 1 >= turn_limit:
             self.game_over = True
             self._determine_winner()
             return

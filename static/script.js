@@ -264,17 +264,20 @@ function updateUI(state) {
     const statusDiv = document.getElementById('status-display');
 
     if (state.game_over) {
-        statusDiv.innerText = `Game Over! Winner: ${state.winner}`;
+        if (state.winner === 'Draw') {
+            statusDiv.innerText = "It's a Draw!";
+            showToast("It's a Draw!");
+            statusDiv.style.color = '#333';
+        } else {
+            statusDiv.innerText = `${state.winner} wins!`;
+            showToast(`${state.winner} wins!`);
+        }
 
         if (state.winner === 'Red') {
             statusDiv.style.color = '#e03131';
         } else if (state.winner === 'Blue') {
             statusDiv.style.color = '#1971c2';
-        } else {
-            statusDiv.style.color = '#333';
         }
-
-        showToast(`Game Over! Winner: ${state.winner}!`);
 
         // Clear any stuck highlights
         document.querySelectorAll('.hex-scoring').forEach(el => el.classList.remove('hex-scoring'));
