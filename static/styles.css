@@ -137,16 +137,21 @@ html {
 }
 
 .icon-btn {
-    background: none;
+    background: #f1f3f5;
     border: none;
-    font-size: 1.2rem;
+    font-size: 1.5rem;
     cursor: pointer;
-    padding: 5px;
-    border-radius: 5px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: background-color 0.2s;
 }
 
 .icon-btn:hover {
-    background-color: #f0f0f0;
+    background-color: #e9ecef;
 }
 
 /* Scoreboard */
@@ -324,6 +329,15 @@ html {
 
 .modal-actions button:hover {
     background: #228be6;
+}
+
+.btn-secondary {
+    background-color: #e9ecef !important;
+    color: #495057 !important;
+}
+
+.btn-secondary:hover {
+    background-color: #dee2e6 !important;
 }
 
 

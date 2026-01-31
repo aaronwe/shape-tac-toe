@@ -42,7 +42,7 @@
             </div>
             <div class="header-right">
                 <button id="open-new-game-btn" class="icon-btn" title="Game Options">
-                    ⚙️ Options
+                    ⚙️
                 </button>
             </div>
         </header>
@@ -98,13 +98,28 @@
             <div class="form-group">
                 <label>Players</label>
                 <select id="player-mode">
-                    <option value="1">1 Player (vs AI)</option>
+                    <option value="0">0 Players (AI vs AI)</option>
+                    <option value="1" selected>1 Player (vs AI)</option>
                     <option value="2">2 Players (Hotseat)</option>
                 </select>
             </div>
-            <div class="form-group" id="ai-difficulty-group">
-                <label>AI Difficulty</label>
-                <select id="ai-difficulty">
+
+            <!-- Red AI Config (Hidden by default) -->
+            <div class="form-group" id="ai-difficulty-red-group" style="display: none;">
+                <label>Red AI Difficulty</label>
+                <select id="ai-difficulty-red">
+                    <option value="easy">Easy</option>
+                    <option value="greedy" selected>Greedy</option>
+                    <option value="thoughtful">Thoughtful</option>
+                    <option value="smart">Smart</option>
+                    <option value="genius">Genius</option>
+                </select>
+            </div>
+
+            <!-- Blue AI Config (Default for 1 Player) -->
+            <div class="form-group" id="ai-difficulty-blue-group">
+                <label>AI Difficulty</label> <!-- Label changes dynamically -->
+                <select id="ai-difficulty-blue">
                     <option value="easy">Easy</option>
                     <option value="greedy" selected>Greedy</option>
                     <option value="thoughtful">Thoughtful</option>
@@ -125,7 +140,8 @@
                    Note: This button's click event is handled by Python (@when("click", "#start-game-btn"))!
                    We don't need to add a JS event listener for it.
                 -->
-                <button id="start-game-btn">Start New Game</button>
+                <button id="start-game-btn" style="margin-bottom: 10px;">Start New Game</button>
+                <button id="cancel-game-btn" class="btn-secondary">Cancel</button>
             </div>
         </div>
     </div>

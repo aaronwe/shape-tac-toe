@@ -32,31 +32,68 @@ def start_new_game(event=None):
     
     # Read configuration values directly from the HTML DOM using the 'js' module
     player_mode = js.document.getElementById('player-mode').value
-    ai_difficulty = js.document.getElementById('ai-difficulty').value
+    ai_difficulty_blue = js.document.getElementById('ai-difficulty-blue').value
+    ai_difficulty_red = js.document.getElementById('ai-difficulty-red').value
     max_rounds_val = js.document.getElementById('game-length').value
     
-    # Determine if AI is enabled (Mode '1' = 1 Player vs AI)
-    # Explicitly cast to string and strip whitespace to be safe
+    # Parse mode
     mode_str = str(player_mode).strip()
     
-    ai_enabled = (mode_str == '1')
-    
     player_agents = {}
-    if ai_enabled:
-        # P2 (Blue) is the AI
-        if ai_difficulty == 'easy':
+    ai_players_list = []
+    
+    # Mode 0: AI vs AI (Both players are AI)
+    if mode_str == '0':
+        # Configure Red AI
+        if ai_difficulty_red == 'easy':
+            player_agents['Red'] = EasyPlayer('Red')
+        elif ai_difficulty_red == 'greedy':
+            player_agents['Red'] = GreedyPlayer('Red')
+        elif ai_difficulty_red == 'thoughtful':
+            player_agents['Red'] = ThoughtfulPlayer('Red')
+        elif ai_difficulty_red == 'smart':
+             player_agents['Red'] = MinimaxPlayer('Red', depth=2)
+        elif ai_difficulty_red == 'genius':
+             player_agents['Red'] = GeniusPlayer('Red')
+        else:
+             player_agents['Red'] = GreedyPlayer('Red')
+             
+        # Configure Blue AI
+        if ai_difficulty_blue == 'easy':
             player_agents['Blue'] = EasyPlayer('Blue')
-        elif ai_difficulty == 'greedy':
+        elif ai_difficulty_blue == 'greedy':
             player_agents['Blue'] = GreedyPlayer('Blue')
-        elif ai_difficulty == 'thoughtful':
+        elif ai_difficulty_blue == 'thoughtful':
             player_agents['Blue'] = ThoughtfulPlayer('Blue')
-        elif ai_difficulty == 'smart':
+        elif ai_difficulty_blue == 'smart':
              player_agents['Blue'] = MinimaxPlayer('Blue', depth=2)
-        elif ai_difficulty == 'genius':
+        elif ai_difficulty_blue == 'genius':
              player_agents['Blue'] = GeniusPlayer('Blue')
         else:
-             # Fallback
              player_agents['Blue'] = GreedyPlayer('Blue')
+             
+        ai_players_list = ['Red', 'Blue']
+
+    # Mode 1: 1 Player (Human vs AI)
+    elif mode_str == '1':
+        # Configure Blue AI only
+        if ai_difficulty_blue == 'easy':
+            player_agents['Blue'] = EasyPlayer('Blue')
+        elif ai_difficulty_blue == 'greedy':
+            player_agents['Blue'] = GreedyPlayer('Blue')
+        elif ai_difficulty_blue == 'thoughtful':
+            player_agents['Blue'] = ThoughtfulPlayer('Blue')
+        elif ai_difficulty_blue == 'smart':
+             player_agents['Blue'] = MinimaxPlayer('Blue', depth=2)
+        elif ai_difficulty_blue == 'genius':
+             player_agents['Blue'] = GeniusPlayer('Blue')
+        else:
+             player_agents['Blue'] = GreedyPlayer('Blue')
+             
+        ai_players_list = ['Blue']
+
+    # Mode 2: 2 Players (Human vs Human)
+    # No agents needed
 
     # Parse max rounds
     max_rounds = 25
@@ -66,26 +103,39 @@ def start_new_game(event=None):
         except:
             max_rounds = 25
             
+    # Tell the JS frontend which players are AI
+    # We use json.dumps to ensure the list is passed as a valid JS array string, 
+    # then parse it on the JS side or let JS receive it as a proxy. 
+    # To be safest with PyScript/JS interop, sending a JSON string and parsing in JS is robust.
+    # However, our script.js expects an array. Let's send a flexible JSON string.
+    # Actually, let's just use the proxy but call it safely.
+    # A safer bet: call a JS wrapper that takes a JSON string.
+    # Or just rely on PyScript's conversion but move it up.
+    
+    # Let's use json.dumps and have a JS function parse it if needed.
+    # But wait, setAiConfig expects 'players'. 
+    # Let's modify setAiConfig in JS to handle either array or string? 
+    # Or just pass a proxy.
+    
+    # Simplest fix: Move this to the TOP.
+    # And convert to JSON string and parse in Python side? No.
+    # js.setAiConfig(js.JSON.parse(json.dumps(ai_players_list))) works reliably.
+    js.setAiConfig(js.JSON.parse(json.dumps(ai_players_list)))
+
     # Initialize the Game Logic Class
     game_instance = Game(size=6, max_rounds=max_rounds, player_agents=player_agents)
     
-    # Prepare the initial state to send to the UI
-    # We use json.dumps to turn the Python Dict into a JSON String.
-    # Then we parse it back in JS or let JS parse it.
-    # Here, we parse it into a JS Object using js.JSON.parse so the JS function receives a real Object.
-    state_json = json.dumps(get_state_dict())
-    js.handleStateUpdate(js.JSON.parse(state_json))
-    
-    # Call a JS function to hide the setup modal
+    # Hide the modal *before* starting the heavy lifting/animation
     js.hideModal()
     
     # Update the "Goal" text in the UI
     goal_display = js.document.getElementById('goal-display')
     if goal_display:
         goal_display.innerText = str(max_rounds)
-    
-    # Tell the JS frontend if the AI is active (so it can block input during AI turns)
-    js.setAiEnabled(ai_enabled)
+
+    # Prepare the initial state to send to the UI
+    state_json = json.dumps(get_state_dict())
+    js.handleStateUpdate(js.JSON.parse(state_json))
 
 def move(q, r):
     """

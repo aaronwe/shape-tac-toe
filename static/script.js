@@ -13,15 +13,17 @@ const CENTER_Y = VIEW_HEIGHT / 2;
 // Global State Storage
 // --------------------------------------------------------------------------
 let currentState = null; // Stores the latest game state object from Python
-let aiEnabled = false;   // Flag to prevent clicking while AI thinks
+// Stores which players are controlled by AI (e.g. ['Blue'] or ['Red', 'Blue'])
+let aiPlayers = [];
 let previousScores = { 'Red': 0, 'Blue': 0 }; // Track score changes for animation
 let isAnimating = false; // Flag to block interaction during score animations
 
 /**
- * Called by Python to enabling/disabling AI mode.
+ * Called by Python to configure AI players.
+ * @param {Array} players - List of player colors controlled by AI.
  */
-window.setAiEnabled = function (val) {
-    aiEnabled = val;
+window.setAiConfig = function (players) {
+    aiPlayers = players || [];
 }
 
 // --------------------------------------------------------------------------
@@ -48,6 +50,21 @@ document.addEventListener('DOMContentLoaded', () => {
     if (logToggleBlue) {
         logToggleBlue.addEventListener('click', () => toggleLog('blue'));
     }
+
+    // 4. Attach listener to Cancel button
+    const cancelBtn = document.getElementById('cancel-game-btn');
+    if (cancelBtn) {
+        cancelBtn.addEventListener('click', hideModal);
+    }
+
+    // 5. Attach listener to Player Mode dropdown to toggle AI options
+    const playerModeSelect = document.getElementById('player-mode');
+    if (playerModeSelect) {
+        playerModeSelect.addEventListener('change', updateAiOptionsVisibility);
+    }
+
+    // Initialize visibility based on default selection
+    updateAiOptionsVisibility();
 });
 
 function showModal() {
@@ -196,9 +213,15 @@ function wait(ms) {
 // AI Handling
 // --------------------------------------------------------------------------
 function checkAiTurn() {
-    // If it's Blue's turn AND AI is enabled AND game isn't over...
-    if (aiEnabled && currentState && currentState.current_player === 'Blue' && !currentState.game_over && !isAnimating) {
+    // If game is over or animating, do nothing
+    if (!currentState || currentState.game_over || isAnimating) return;
+
+    // Check if the current player is an AI
+    if (aiPlayers.includes(currentState.current_player)) {
         setTimeout(() => {
+            // Check again in case state changed during timeout
+            if (currentState.game_over || isAnimating) return;
+
             // Call the Python function 'py_ai_move'
             if (window.py_ai_move) {
                 const stateRaw = window.py_ai_move();
@@ -405,7 +428,7 @@ function onHexClick(q, r) {
     if (currentState.game_over || isAnimating) return;
 
     // Prevent clicking during AI's turn
-    if (aiEnabled && currentState.current_player === 'Blue') return;
+    if (aiPlayers.includes(currentState.current_player)) return;
 
     // Call Python function
     if (window.py_move) {
@@ -492,4 +515,27 @@ function showToast(message) {
             toast.remove();
         }
     }, 1000);
+}
+
+/**
+ * Updates the visibility of AI difficulty dropdowns based on the selected mode.
+ */
+function updateAiOptionsVisibility() {
+    const mode = document.getElementById('player-mode').value;
+    const redGroup = document.getElementById('ai-difficulty-red-group');
+    const blueGroup = document.getElementById('ai-difficulty-blue-group');
+    const blueLabel = blueGroup.querySelector('label');
+
+    if (mode === '0') { // 0 Players (AI vs AI)
+        redGroup.style.display = 'block';
+        blueGroup.style.display = 'block';
+        blueLabel.innerText = "Blue AI Difficulty";
+    } else if (mode === '1') { // 1 Player (Human vs AI)
+        redGroup.style.display = 'none';
+        blueGroup.style.display = 'block';
+        blueLabel.innerText = "AI Difficulty";
+    } else { // 2 Players (Hotseat)
+        redGroup.style.display = 'none';
+        blueGroup.style.display = 'none';
+    }
 }
