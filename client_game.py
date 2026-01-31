@@ -40,7 +40,6 @@ def start_new_game(event=None):
     mode_str = str(player_mode).strip()
     
     ai_enabled = (mode_str == '1')
-    js.alert(f"DEBUG: Mode Selected='{mode_str}', AI Enabled={ai_enabled}")
     
     player_agents = {}
     if ai_enabled:
@@ -111,12 +110,9 @@ def ai_move_py():
     Called by JavaScript to trigger an AI move.
     """
     global game_instance
-    print("DEBUG: ai_move_py called.")
     if game_instance:
-        print("DEBUG: game_instance exists. Calling game_instance.ai_move()...")
         game_instance.ai_move()
         return json.dumps(get_state_dict())
-    print("DEBUG: game_instance is None!")
     return "{}"
 
 def get_state_json():

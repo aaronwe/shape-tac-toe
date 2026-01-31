@@ -69,7 +69,7 @@ function hideModal() {
 function handleStateUpdate(state) {
     if (state.error) {
         console.error(state.error);
-        showErrorPopup(state.error);
+        showToast(state.error);
         return;
     }
 
@@ -196,29 +196,18 @@ function wait(ms) {
 // AI Handling
 // --------------------------------------------------------------------------
 function checkAiTurn() {
-    console.log("DEBUG: checkAiTurn called.");
     // If it's Blue's turn AND AI is enabled AND game isn't over...
     if (aiEnabled && currentState && currentState.current_player === 'Blue' && !currentState.game_over && !isAnimating) {
-        console.log("DEBUG: Conditions met for AI turn. Scheduling move...");
         setTimeout(() => {
-            console.log("DEBUG: Calling window.py_ai_move...");
             // Call the Python function 'py_ai_move'
             if (window.py_ai_move) {
                 const stateRaw = window.py_ai_move();
-                console.log("DEBUG: py_ai_move returned:", stateRaw ? "Some Data" : "Null/Empty");
                 if (stateRaw) {
                     // Update JS with the result from Python
                     handleStateUpdate(JSON.parse(stateRaw));
                 }
-            } else {
-                console.error("DEBUG: window.py_ai_move is NOT defined!");
             }
         }, 500); // 500ms delay for "thinking" time
-    } else {
-        console.log("DEBUG: AI Turn Skipped. aiEnabled:", aiEnabled,
-            "CurrentPlayer:", currentState ? currentState.current_player : "null",
-            "GameOver:", currentState ? currentState.game_over : "null",
-            "IsAnimating:", isAnimating);
     }
 }
 
@@ -238,8 +227,6 @@ function updateUI(state) {
         document.getElementById('last-turn-blue').innerText = `Last Turn: ${state.last_turn_points['Blue']}`;
     }
 
-
-
     // Visual active state for player cards
     document.getElementById('card-red').classList.toggle('active-turn', state.current_player === 'Red' && !state.game_over);
     document.getElementById('card-blue').classList.toggle('active-turn', state.current_player === 'Blue' && !state.game_over);
@@ -255,17 +242,39 @@ function updateUI(state) {
 
     if (state.game_over) {
         statusDiv.innerText = `Game Over! Winner: ${state.winner}`;
-        statusDiv.style.color = '#e03131'; // Make red for attention
+
+        if (state.winner === 'Red') {
+            statusDiv.style.color = '#e03131';
+        } else if (state.winner === 'Blue') {
+            statusDiv.style.color = '#1971c2';
+        } else {
+            statusDiv.style.color = '#333';
+        }
+
+        showToast(`Game Over! Winner: ${state.winner}!`);
+
         // Clear any stuck highlights
         document.querySelectorAll('.hex-scoring').forEach(el => el.classList.remove('hex-scoring'));
     } else {
         statusDiv.style.color = '#333';
+        const currentRound = Math.floor(state.turn_index / 2) + 1;
+        const maxRounds = state.max_rounds;
+        const roundsLeft = maxRounds - currentRound + 1;
+
         if (state.final_turn) {
             statusDiv.innerText = "FINAL TURN!";
             statusDiv.style.color = '#f08c00'; // Orange warning
+            showToast("Last Turn!");
         } else {
             // "Round 1 / 25"
-            statusDiv.innerText = `Round ${(Math.floor(state.turn_index / 2) + 1)} / ${state.max_rounds}`;
+            statusDiv.innerText = `Round ${currentRound} / ${maxRounds}`;
+
+            // Show warnings for last 3 rounds
+            if (state.current_player === 'Red' && roundsLeft <= 3 && roundsLeft > 1) {
+                showToast(`${roundsLeft} Rounds Remaining!`);
+            } else if (roundsLeft === 1 && state.current_player === 'Red') {
+                showToast("Final Round!");
+            }
         }
     }
 
@@ -463,7 +472,7 @@ function formatShapeName(shape) {
 /**
  * Shows a temporary toast/popup message on the game board.
  */
-function showErrorPopup(message) {
+function showToast(message) {
     const container = document.getElementById('game-board');
 
     // Remove any existing toast to prevent stacking
