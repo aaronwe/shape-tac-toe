@@ -376,17 +376,36 @@ function renderBoard(state) {
 
     const board = state.board;
 
+    // Separate keys into normal and bonus to control drawing order
+    const normalKeys = [];
+    const bonusKeys = [];
+
     for (const key in board) {
-        // key is "q,r,s" 
+        if (state.bonuses && state.bonuses[key]) {
+            bonusKeys.push(key);
+        } else {
+            normalKeys.push(key);
+        }
+    }
+
+    // Helper to process a key
+    const processKey = (key) => {
         const parts = key.split(',');
         const q = parseInt(parts[0]);
         const r = parseInt(parts[1]);
-        const marker = board[key]; // 'Red', 'Blue', or null
+        const marker = board[key];
         const bonus = state.bonuses ? state.bonuses[key] : null;
 
         const center = hexToPixel(q, r);
         drawHex(svg, center.x, center.y, q, r, marker, bonus);
-    }
+    };
+
+    // 1. Draw normal hexes first (background layer)
+    normalKeys.forEach(processKey);
+
+    // 2. Draw bonus hexes last (foreground layer)
+    // This ensures their thicker borders draw ON TOP of neighbors
+    bonusKeys.forEach(processKey);
 }
 
 /**

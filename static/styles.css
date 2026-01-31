@@ -47,7 +47,9 @@ body.turn-blue polygon:not(.occupied):hover {
     fill: #fff3bf;
     /* Light yellow base */
     stroke: #fcc419;
-    stroke-width: 2px;
+    stroke-width: 4px;
+    z-index: 5;
+    /* Hint for stacking if supported, but relies on DOM order */
 }
 
 .hex-bonus:hover {
@@ -57,7 +59,7 @@ body.turn-blue polygon:not(.occupied):hover {
 /* If occupied, keep marker color but show gold border */
 .hex-bonus.occupied {
     stroke: #fcc419;
-    stroke-width: 3px;
+    stroke-width: 5px;
 }
 
 /* Floating Labels */
