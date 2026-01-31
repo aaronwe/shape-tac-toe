@@ -304,17 +304,18 @@ function updateUI(state) {
         }
     }
 
-    // Update Pieces Left
-    // Turn Index counts COMPLETED moves (starts at 0).
-    // Red moves = ceil(turn_index / 2)
-    // Blue moves = floor(turn_index / 2)
-    const redPlayed = Math.ceil(state.turn_index / 2);
-    const bluePlayed = Math.floor(state.turn_index / 2);
+    // Update AI Name labels (was Pieces Left)
+    if (state.agents && state.agents['Red']) {
+        document.getElementById('pieces-red').innerText = state.agents['Red'];
+    } else {
+        document.getElementById('pieces-red').innerText = "";
+    }
 
-    const maxRounds = state.max_rounds || 25; // Default to 25 if undefined
-
-    document.getElementById('pieces-red').innerText = `Pieces: ${Math.max(0, maxRounds - redPlayed)}`;
-    document.getElementById('pieces-blue').innerText = `Pieces: ${Math.max(0, maxRounds - bluePlayed)}`;
+    if (state.agents && state.agents['Blue']) {
+        document.getElementById('pieces-blue').innerText = state.agents['Blue'];
+    } else {
+        document.getElementById('pieces-blue').innerText = "";
+    }
 }
 
 /**

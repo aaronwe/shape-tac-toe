@@ -301,5 +301,12 @@ class Game:
             'max_rounds': self.max_rounds,
             'turn_index': self.turn_index,
             'total_turns': self.max_rounds * 2,
-            'last_turn_points': self.last_turn_points
+            'last_turn_points': self.last_turn_points,
+            'agents': {
+                color: (
+                    self.agents.get(color).__class__.__name__.replace("Player", "") 
+                    if self.agents.get(color) else None
+                )
+                for color in self.players
+            }
         }
