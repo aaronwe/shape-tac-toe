@@ -196,18 +196,29 @@ function wait(ms) {
 // AI Handling
 // --------------------------------------------------------------------------
 function checkAiTurn() {
+    console.log("DEBUG: checkAiTurn called.");
     // If it's Blue's turn AND AI is enabled AND game isn't over...
     if (aiEnabled && currentState && currentState.current_player === 'Blue' && !currentState.game_over && !isAnimating) {
+        console.log("DEBUG: Conditions met for AI turn. Scheduling move...");
         setTimeout(() => {
+            console.log("DEBUG: Calling window.py_ai_move...");
             // Call the Python function 'py_ai_move'
             if (window.py_ai_move) {
                 const stateRaw = window.py_ai_move();
+                console.log("DEBUG: py_ai_move returned:", stateRaw ? "Some Data" : "Null/Empty");
                 if (stateRaw) {
                     // Update JS with the result from Python
                     handleStateUpdate(JSON.parse(stateRaw));
                 }
+            } else {
+                console.error("DEBUG: window.py_ai_move is NOT defined!");
             }
         }, 500); // 500ms delay for "thinking" time
+    } else {
+        console.log("DEBUG: AI Turn Skipped. aiEnabled:", aiEnabled,
+            "CurrentPlayer:", currentState ? currentState.current_player : "null",
+            "GameOver:", currentState ? currentState.game_over : "null",
+            "IsAnimating:", isAnimating);
     }
 }
 

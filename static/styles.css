@@ -172,10 +172,21 @@ html {
 }
 
 .player-card.active-turn {
-    border-color: #fbcc5c;
-    /* Gold border for active */
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-md);
+    transform: scale(1.1);
+    z-index: 10;
+    /* Ensure it pops over other elements if needed */
+}
+
+/* Red Player Active State */
+.player-card.player-red.active-turn {
+    border-color: var(--red-color);
+    box-shadow: 0 0 15px rgba(224, 49, 49, 0.5);
+}
+
+/* Blue Player Active State */
+.player-card.player-blue.active-turn {
+    border-color: var(--blue-color);
+    box-shadow: 0 0 15px rgba(25, 113, 194, 0.5);
 }
 
 .player-red .player-name {

@@ -9,7 +9,7 @@ class NoCacheHandler(SimpleHTTPRequestHandler):
         super().end_headers()
 
 if __name__ == '__main__':
-    port = 8000
+    port = 8080
     print(f"Serving on port {port} with no-cache headers...")
     httpd = HTTPServer(('localhost', port), NoCacheHandler)
     try:
