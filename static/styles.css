@@ -396,3 +396,51 @@ html {
         opacity: 0;
     }
 }
+
+/* Toast Notification */
+.game-toast {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: rgba(33, 37, 41, 0.95);
+    /* Dark grey, almost black */
+    color: #f8f9fa;
+    /* Light text */
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+    pointer-events: none;
+    text-align: center;
+    min-width: 200px;
+    font-family: var(--font-stack);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+
+    /* Animation - 1s total duration as requested */
+    opacity: 0;
+    animation: fadePopup 1s ease-in-out forwards;
+}
+
+@keyframes fadePopup {
+    0% {
+        opacity: 0;
+        transform: translate(-50%, -40%) scale(0.9);
+    }
+
+    10% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+
+    80% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+
+    100% {
+        opacity: 0;
+        transform: translate(-50%, -60%);
+    }
+}

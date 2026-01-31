@@ -69,7 +69,7 @@ function hideModal() {
 function handleStateUpdate(state) {
     if (state.error) {
         console.error(state.error);
-        alert(state.error);
+        showErrorPopup(state.error);
         return;
     }
 
@@ -446,4 +446,29 @@ function formatShapeName(shape) {
         return "Variety Bonus (Jackpot!)";
     }
     return type.charAt(0).toUpperCase() + type.slice(1);
+}
+
+/**
+ * Shows a temporary toast/popup message on the game board.
+ */
+function showErrorPopup(message) {
+    const container = document.getElementById('game-board');
+
+    // Remove any existing toast to prevent stacking
+    const existing = container.querySelector('.game-toast');
+    if (existing) existing.remove();
+
+    const toast = document.createElement('div');
+    toast.className = 'game-toast';
+    toast.innerText = message;
+
+    container.appendChild(toast);
+
+    // Automatically removed by CSS animation, but good practice to clean up DOM.
+    // CSS animation is 1s total.
+    setTimeout(() => {
+        if (toast.parentElement) {
+            toast.remove();
+        }
+    }, 1000);
 }
