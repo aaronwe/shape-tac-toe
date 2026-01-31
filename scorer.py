@@ -1,4 +1,4 @@
-from hex_grid import Hex
+from grid_logic import Hex
 
 class Scorer:
     """

@@ -1,4 +1,4 @@
-from hex_grid import HexGrid, Hex
+from grid_logic import HexGrid, Hex
 from scorer import Scorer
 
 
@@ -28,7 +28,7 @@ class Game:
         
         # Randomize start player
         import random
-        random.shuffle(self.players)
+        # random.shuffle(self.players)
         
         # Generate Bonus Tiles (5 random tiles get 2x multiplier)
         all_hexes = list(self.grid.cells.keys())

@@ -2,6 +2,6 @@
 # Map local files to the virtual filesystem
 "game.py" = "./game.py"
 "scorer.py" = "./scorer.py"
-"hex_grid.py" = "./hex_grid.py"
+"grid_logic.py" = "./grid_logic.py"
 "client_game.py" = "./client_game.py"
 "ai_player.py" = "./ai_player.py"

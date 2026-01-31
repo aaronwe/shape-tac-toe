@@ -94,8 +94,7 @@ def move(q, r):
     # Attempt to play the move in the game logic
     success, msg = game_instance.play_move(q, r)
     if not success:
-        print(f"Move failed: {msg}")
-        return
+        return json.dumps({"error": msg})
         
     # If successful, return the new state as a JSON string to JS.
     # The JS side will parse this string.

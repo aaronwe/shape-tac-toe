@@ -69,6 +69,7 @@ function hideModal() {
 function handleStateUpdate(state) {
     if (state.error) {
         console.error(state.error);
+        alert(state.error);
         return;
     }
 
