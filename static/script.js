@@ -227,8 +227,7 @@ function updateUI(state) {
         document.getElementById('last-turn-blue').innerText = `Last Turn: ${state.last_turn_points['Blue']}`;
     }
 
-    const turnDiv = document.getElementById('turn-indicator');
-    const msgDiv = document.getElementById('message-area');
+
 
     // Visual active state for player cards
     document.getElementById('card-red').classList.toggle('active-turn', state.current_player === 'Red' && !state.game_over);
@@ -241,19 +240,21 @@ function updateUI(state) {
     }
 
     // Handle Game Over or Next Turn messages
+    const statusDiv = document.getElementById('status-display');
+
     if (state.game_over) {
-        turnDiv.innerText = "Game Over!";
-        msgDiv.innerText = `Winner: ${state.winner}`;
+        statusDiv.innerText = `Game Over! Winner: ${state.winner}`;
+        statusDiv.style.color = '#e03131'; // Make red for attention
         // Clear any stuck highlights
         document.querySelectorAll('.hex-scoring').forEach(el => el.classList.remove('hex-scoring'));
     } else {
+        statusDiv.style.color = '#333';
         if (state.final_turn) {
-            turnDiv.innerText = `LAST TURN: Blue`;
-            msgDiv.innerText = "Blue gets one final chance!";
+            statusDiv.innerText = "FINAL TURN!";
+            statusDiv.style.color = '#f08c00'; // Orange warning
         } else {
-            // Updated: Show simplistic turn status here
-            turnDiv.innerText = `Turn: ${state.current_player}`;
-            msgDiv.innerText = `Round ${(Math.floor(state.turn_index / 2) + 1)} / ${state.max_rounds}`;
+            // "Round 1 / 25"
+            statusDiv.innerText = `Round ${(Math.floor(state.turn_index / 2) + 1)} / ${state.max_rounds}`;
         }
     }
 

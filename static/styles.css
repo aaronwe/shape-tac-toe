@@ -223,56 +223,27 @@ html {
 
 /* Game Status Center */
 .game-status {
+    flex: 1;
+    /* Allow it to take up available space between cards */
     text-align: center;
-    font-size: 0.85rem;
+    font-size: 0.95rem;
+    /* Slightly larger */
     color: #495057;
     display: flex;
     flex-direction: column;
     justify-content: center;
-}
-
-#turn-indicator {
-    font-weight: bold;
-    margin-bottom: 2px;
-}
-
-/* Game Area */
-.game-area {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
     align-items: center;
-    justify-content: center;
-    position: relative;
-    padding: 10px;
-    overflow: hidden;
+    margin: 0 10px;
 }
 
-.board-container {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-#hex-grid {
-    width: 100%;
-    height: 100%;
-    max-height: 80vh;
-    /* Ensure it fits */
-    /* pointer-events handled by polygons */
-}
-
-#message-area {
-    position: absolute;
-    bottom: 20px;
-    background: rgba(255, 255, 255, 0.9);
-    padding: 5px 15px;
+#status-display {
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: #333;
+    padding: 4px 12px;
+    background-color: #e9ecef;
     border-radius: 20px;
-    font-weight: bold;
-    box-shadow: var(--shadow-sm);
-    pointer-events: none;
+    white-space: nowrap;
 }
 
 /* Modal */
