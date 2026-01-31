@@ -28,12 +28,23 @@ class Game:
         
         # Randomize start player
         import random
-        # random.shuffle(self.players)
+        random.shuffle(self.players)
         
         # Generate Bonus Tiles (5 random tiles get 2x multiplier)
+        # RESTRICTION: Bonus tiles only in outer 2 rings
+        # Radius 6 board. Outer rings are radius 6 and 5.
+        # Generally: dist >= radius - 1
         all_hexes = list(self.grid.cells.keys())
-        if len(all_hexes) > 5:
-            bonus_hexes = random.sample(all_hexes, 5) 
+        radius = self.grid.radius
+        outer_hexes = [h for h in all_hexes if h.length() >= radius - 1]
+        
+        if len(outer_hexes) > 5:
+            bonus_hexes = random.sample(outer_hexes, 5) 
+            for h in bonus_hexes:
+                self.grid.bonuses[h] = 2
+        elif len(all_hexes) > 5:
+            # Fallback if board is tiny (radius < 2)
+            bonus_hexes = random.sample(all_hexes, 5)
             for h in bonus_hexes:
                 self.grid.bonuses[h] = 2
         
@@ -55,7 +66,8 @@ class Game:
 
     def current_player(self):
         # Returns 'Red' or 'Blue' based on the turn index.
-        # Even numbers = Red, Odd numbers = Blue.
+        # Returns 'Red' or 'Blue' based on the turn index.
+        # self.players is shuffled at start, so 0 is the start player.
         return self.players[self.turn_index % 2]
     
     def get_valid_moves(self):
@@ -65,7 +77,15 @@ class Game:
         """
         occupied = [h for h, m in self.grid.cells.items() if m is not None]
         
-        # If board is empty, all empty cells are valid
+        # If board is empty, force first move to center
+        # Or rather, turn_index == 0
+        if self.turn_index == 0:
+            center = Hex(0, 0, 0)
+            if center in self.grid.cells and self.grid.cells[center] is None:
+                return [center]
+        
+        # If board is otherwise empty (shouldn't happen if turn 0 is handled), 
+        # all empty cells are valid.
         if not occupied:
             return [h for h, m in self.grid.cells.items() if m is None]
             
@@ -112,6 +132,10 @@ class Game:
         
         cell = Hex(q, r)
         player = self.current_player()
+        
+        # 0. First Move Restriction
+        if self.turn_index == 0 and cell != Hex(0, 0, 0):
+             return False, "First move must be in the center"
         
         # 1. Place the marker on the grid
         # NEW RULE: Loose Adjacency w/ Distance 2
@@ -196,10 +220,22 @@ class Game:
             self._determine_winner()
             return
             
-        # Condition 2: Max Rounds Reached
-        # turn_index is the number of turns COMPLETED.
-        # If max_rounds is 25, that means 25 moves per player = 50 moves total.
-        if self.turn_index >= self.max_rounds * 2:
+        # Condition 2: Max Rounds Reached OR Board Full (Equal Turns)
+        # We want to ensure equal turns if possible.
+        # If the board has an odd number of cells, we should stop 1 short of full
+        # so the second player gets the last move.
+        
+        board_capacity = len(self.grid.cells)
+        # If capacity is odd, max turns is capacity - 1
+        effective_capacity = board_capacity if board_capacity % 2 == 0 else board_capacity - 1
+        
+        # Max turns based on rounds
+        max_turns_rounds = self.max_rounds * 2
+        
+        # The game ends if we reach whichever limit is lower
+        turn_limit = min(max_turns_rounds, effective_capacity)
+        
+        if self.turn_index >= turn_limit:
             self.game_over = True
             self._determine_winner()
             return
