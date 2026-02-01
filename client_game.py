@@ -1,7 +1,7 @@
 import js
 from pyscript import when
 from game import Game
-from ai_player import EasyPlayer, GreedyPlayer, ThoughtfulPlayer, GeniusPlayer, MinimaxPlayer
+from ai_player import EasyPlayer, GreedyPlayer, ThoughtfulPlayer, GeniusPlayer, MinimaxPlayer, SmartPlayer
 import json
 
 # Global game instance
@@ -52,7 +52,7 @@ def start_new_game(event=None):
         elif ai_difficulty_red == 'thoughtful':
             player_agents['Red'] = ThoughtfulPlayer('Red')
         elif ai_difficulty_red == 'smart':
-             player_agents['Red'] = MinimaxPlayer('Red', depth=2)
+             player_agents['Red'] = SmartPlayer('Red')
         elif ai_difficulty_red == 'genius':
              player_agents['Red'] = GeniusPlayer('Red')
         else:
@@ -66,7 +66,7 @@ def start_new_game(event=None):
         elif ai_difficulty_blue == 'thoughtful':
             player_agents['Blue'] = ThoughtfulPlayer('Blue')
         elif ai_difficulty_blue == 'smart':
-             player_agents['Blue'] = MinimaxPlayer('Blue', depth=2)
+             player_agents['Blue'] = SmartPlayer('Blue')
         elif ai_difficulty_blue == 'genius':
              player_agents['Blue'] = GeniusPlayer('Blue')
         else:
@@ -84,7 +84,7 @@ def start_new_game(event=None):
         elif ai_difficulty_blue == 'thoughtful':
             player_agents['Blue'] = ThoughtfulPlayer('Blue')
         elif ai_difficulty_blue == 'smart':
-             player_agents['Blue'] = MinimaxPlayer('Blue', depth=2)
+             player_agents['Blue'] = SmartPlayer('Blue')
         elif ai_difficulty_blue == 'genius':
              player_agents['Blue'] = GeniusPlayer('Blue')
         else:

@@ -10,54 +10,80 @@ class Scorer:
     def __init__(self, grid):
         self.grid = grid
 
-    def calculate_score(self, player_marker):
+    def calculate_score(self, player_marker, just_points=False):
         """
         Main function to compute the total score for a player.
         It calls individual helper methods for each shape type and sums up the points.
         Returns:
-            total_score (int): Total points.
-            all_shapes (list): List of dictionaries describing every shape found (for UI highlighting).
+            ((total_score, all_shapes)) if just_points is False
+            (total_score, []) if just_points is True (optimization)
         """
         total_score = 0
         all_shapes = []
 
         # 1. Score Lines
-        s_lines, shapes_lines = self._score_lines(player_marker)
-        total_score += s_lines
-        all_shapes.extend(shapes_lines)
+        if just_points:
+             total_score += self._score_lines_fast(player_marker)
+        else:
+             s_lines, shapes_lines = self._score_lines(player_marker)
+             total_score += s_lines
+             all_shapes.extend(shapes_lines)
 
         # 2. Score Loops (Rings)
-        s_loops, shapes_loops = self._score_loops(player_marker)
-        total_score += s_loops
-        all_shapes.extend(shapes_loops)
+        if just_points:
+             total_score += self._score_loops_fast(player_marker)
+        else:
+             s_loops, shapes_loops = self._score_loops(player_marker)
+             total_score += s_loops
+             all_shapes.extend(shapes_loops)
 
         # 3. Score Hollow Shapes (Diamonds/Parallelograms outlines)
-        s_hollow, shapes_hollow = self._score_hollow_shapes(player_marker)
-        total_score += s_hollow
-        all_shapes.extend(shapes_hollow)
+        if just_points:
+             total_score += self._score_hollow_shapes_fast(player_marker)
+        else:
+             s_hollow, shapes_hollow = self._score_hollow_shapes(player_marker)
+             total_score += s_hollow
+             all_shapes.extend(shapes_hollow)
 
         # 4. Score Triangles
-        s_tri, shapes_tri = self._score_triangles(player_marker)
-        total_score += s_tri
-        all_shapes.extend(shapes_tri)
+        if just_points:
+             total_score += self._score_triangles_fast(player_marker)
+        else:
+             s_tri, shapes_tri = self._score_triangles(player_marker)
+             total_score += s_tri
+             all_shapes.extend(shapes_tri)
 
         # 5. Variety Bonus
         # Incentivize shape diversity: Line + Triangle + Loop/Hollow = +30 pts
-        has_line = any(s['type'].startswith('line') for s in all_shapes)
-        has_triangle = any(s['type'].startswith('triangle') for s in all_shapes)
-        has_loop_or_hollow = any(s['type'] in ('loop', 'hollow_3x3', 'hollow_4x4') for s in all_shapes)
+        # Note: Calculating variety bonus requires knowing WHICH shapes exist.
+        # For 'just_points', we would effectively need to run the full detection logic or logic that returns bools.
+        # To strictly optimize, we might skip this for AI heuristic or approximate it.
+        # However, accurate scoring is better. 
+        # For now, if just_points is True, we skip the Variety Bonus calculation to be purely fast
+        # OR we implement fast detection boolean checks.
+        # Let's keep it simple: The AI won't "know" about the Variety Bonus in the fast heuristic, 
+        # which is a trade-off for speed. 
+        # actually, let's just properly implement it in the slow path, and fast path ignores it for raw shape density.
         
-        if has_line and has_triangle and has_loop_or_hollow:
-            bonus = 30
-            total_score += bonus
-            all_shapes.append({
-                'type': 'variety_bonus',
-                'points': bonus,
-                'cells': frozenset() 
-            })
+        if not just_points:
+            has_line = any(s['type'].startswith('line') for s in all_shapes)
+            has_triangle = any(s['type'].startswith('triangle') for s in all_shapes)
+            has_loop_or_hollow = any(s['type'] in ('loop', 'hollow_3x3', 'hollow_4x4') for s in all_shapes)
+            
+            if has_line and has_triangle and has_loop_or_hollow:
+                bonus = 30
+                total_score += bonus
+                all_shapes.append({
+                    'type': 'variety_bonus',
+                    'points': bonus,
+                    'cells': frozenset() 
+                })
 
         return total_score, all_shapes
 
+    # -------------------------------------------------------------------------
+    # NON-OPTIMIZED METHODS (Return shapes list)
+    # -------------------------------------------------------------------------
     def _score_lines(self, marker):
         """
         Finds straight lines of 3 or more markers.
@@ -65,48 +91,30 @@ class Scorer:
         score = 0
         shapes = []
         
-        # Get all cells occupied by the current player
-        # This is a set comprehension (like list comprehension but creates a set)
         player_cells = {h for h, m in self.grid.cells.items() if m == marker}
-        
-        # We only need to check 3 directions (axes). 
-        # Checking the opposite directions (e.g., Left vs Right) would just find the same line twice.
         directions = [Hex(1, -1, 0), Hex(1, 0, -1), Hex(0, 1, -1)]
-        
-        # Keep track of visited cells per direction to avoid double counting segments
         visited_in_direction = {d: set() for d in directions}
 
         for d in directions:
             for cell in player_cells:
-                # If we already counted this cell in this direction, skip it
                 if cell in visited_in_direction[d]:
                     continue
                 
-                # Check if this cell is the START of a line.
-                # It determines this by seeing if the cell *behind* it (cell - d) is empty or different.
                 prev_cell = cell - d
                 if prev_cell in player_cells:
-                    continue # Not the start, so skip (we will catch it when we process the start node)
+                    continue 
                 
-                # Trace the line forward
                 length = 0
                 curr = cell
                 line_cells = []
                 
-                # Keep moving in direction 'd' as long as we see our own marker
                 while curr in player_cells:
                     length += 1
                     line_cells.append(curr)
-                    visited_in_direction[d].add(curr) # Mark as visited so we don't re-process
+                    visited_in_direction[d].add(curr)
                     curr = curr + d
                 
-                # If the line is long enough (3+), add points
                 if length >= 3:
-                     # New Rule: Triangular Scoring (Nerfed from Exponential)
-                     # Length 3: 1 pt
-                     # Length 4: 3 pts
-                     # Length 5: 6 pts
-                     # Length 6: 10 pts
                      n = length - 2
                      base_pts = int(n * (n + 1) / 2)
                      pts = self._calculate_points(base_pts, line_cells)
@@ -120,34 +128,19 @@ class Scorer:
         return score, shapes
 
     def _score_loops(self, marker):
-        """
-        Finds "Loops" or "Rings" (6 markers surrounding a center).
-        """
         score = 0
         shapes = []
         player_cells = {h for h, m in self.grid.cells.items() if m == marker}
         found_loops = set()
         
-        # The 6 vectors to neighbor cells
         directions = [
             Hex(1, -1, 0), Hex(1, 0, -1), Hex(0, 1, -1),
             Hex(-1, 1, 0), Hex(-1, 0, 1), Hex(0, -1, 1)
         ]
 
-        # Algorithm:
-        # Instead of looking for a pattern, we assume every empty spot could be a "center".
-        # But iterating all empty spots is one way.
-        # Here, we iterate player cells and check "If I am part of a loop, where would the center be?"
         for cell in player_cells:
-            # A cell can be a neighbor to a center in 6 different directions.
             for d in directions:
-                # Mathematically, if 'cell' is neighbor to 'center', 
-                # then 'center' is 'cell' moved in the opposite direction.
-                # Or simply: 'center' is in direction -d from 'cell'.
-                # Let's check a potential center.
                 center = cell - d
-                
-                # Check if this center is surrounded by 6 of our markers
                 loop_cells = set()
                 is_loop = True
                 for neighbor_dir in directions:
@@ -158,8 +151,6 @@ class Scorer:
                     loop_cells.add(neighbor)
                 
                 if is_loop:
-                    # We found a loop! Use a frozenset to uniquely identify it 
-                    # (so we don't count the same loop 6 times, once for each component cell)
                     loop_id = frozenset(loop_cells)
                     if loop_id not in found_loops:
                         found_loops.add(loop_id)
@@ -175,43 +166,26 @@ class Scorer:
         return score, shapes
 
     def _score_hollow_shapes(self, marker):
-        """
-        Finds "Hollow Shapes" (outlines of shapes like 3x3 or 4x4 diamonds).
-        This detects if a player has drawn the border of a larger shape.
-        """
         score = 0
         shapes = []
         player_cells = {h for h, m in self.grid.cells.items() if m == marker}
         
-        # Hexagonal grid axes pairs that define "rhombus/diamond" shapes
         orientations = [
-             (Hex(1, -1, 0), Hex(0, 1, -1)),  # Axis pair 1
-             (Hex(0, 1, -1), Hex(-1, 1, 0)),  # Axis pair 2
-             (Hex(-1, 1, 0), Hex(-1, 0, 1))   # Axis pair 3
+             (Hex(1, -1, 0), Hex(0, 1, -1)),
+             (Hex(0, 1, -1), Hex(-1, 1, 0)),
+             (Hex(-1, 1, 0), Hex(-1, 0, 1))
         ]
         
-        # Config: (Side Length in dots, Points)
-        # Size 3 = Hollow 3x3 (requires 8 dots to draw outline) -> 4 points
-        # Size 4 = Hollow 4x4 (requires 12 dots) -> 8 points
         sizes = [(3, 4), (4, 8)]
-        
         found_hollows = set()
 
         for side_dots, points in sizes:
             steps = side_dots - 1
             for cell in player_cells:
-                # Try to trace a shape starting from 'cell' in each orientation
                 for u, v in orientations:
                     path_vertices = set()
                     path_vertices.add(cell)
                     current = cell
-                    
-                    # Trace key:
-                    # 1. Move 'steps' times in direction u
-                    # 2. Move 'steps' times in direction v
-                    # 3. Move 'steps' times in direction -u (backwards u)
-                    # 4. Move 'steps' times in direction -v (backwards v)
-                    # If we make it back to start and all are filled, it's a shape.
                     
                     # 1. u
                     for _ in range(steps):
@@ -232,15 +206,12 @@ class Scorer:
                          current = current + minus_v
                          path_vertices.add(current)
                          
-                    # Check if all vertices in this path belong to the player
                     if path_vertices.issubset(player_cells):
                         shape_id = frozenset(path_vertices)
                         if shape_id not in found_hollows:
                             found_hollows.add(shape_id)
-                            # points is loop var (base points)
                             pts = self._calculate_points(points, path_vertices)
                             score += pts
-                            
                             shapes.append({
                                 'type': f'hollow_{side_dots}x{side_dots}',
                                 'points': pts,
@@ -250,14 +221,9 @@ class Scorer:
         return score, shapes
 
     def _score_triangles(self, marker):
-        """
-        Finds FILLED triangles of various sizes.
-        Size 2 triangle = Removed (Too easy).
-        Size 3 triangle = 6 dots.
-        """
         score = 0
         shapes = []
-        found_triangles = set() # Set of frozenset(coords) to avoid duplicates
+        found_triangles = set()
         player_cells = {h for h, m in self.grid.cells.items() if m == marker}
         
         neighbors = [
@@ -265,22 +231,17 @@ class Scorer:
             Hex(-1, 1, 0), Hex(-1, 0, 1), Hex(0, -1, 1)
         ]
         
-        # Iterate sizes: 3 "dots wide" up to 8 (Removed Size 2)
         for size in range(3, 9):
             for cell in player_cells:
-                # A triangle is defined by 2 direction vectors (edges from a vertex)
                 for i in range(6):
                     u = neighbors[i]
-                    v = neighbors[(i+1)%6] # Next neighbor in sequence
+                    v = neighbors[(i+1)%6]
                     
                     triangle_pixels = set()
                     valid = True
                     
-                    # Iterate through the grid points inside the triangle defined by u and v
-                    # 'a' and 'b' are coordinates in the local basis (u, v)
                     for a in range(size):
                         for b in range(size - a):
-                            # Map local (a, b) back to global Hex coordinates
                             p = Hex(
                                 cell.q + a*u.q + b*v.q,
                                 cell.r + a*u.r + b*v.r,
@@ -293,12 +254,10 @@ class Scorer:
                         if not valid:
                             break
                     
-                if valid:
+                    if valid:
                         t_id = frozenset(triangle_pixels)
                         if t_id not in found_triangles:
                             found_triangles.add(t_id)
-                            # New Scoring: Size * 5
-                            # Size 3 = 15 pts (High value)
                             base_pts = size * 5
                             points = self._calculate_points(base_pts, triangle_pixels)
                             score += points
@@ -309,6 +268,192 @@ class Scorer:
                             })
                             
         return score, shapes
+
+    # -------------------------------------------------------------------------
+    # FAST METHODS (Return integer score only)
+    # -------------------------------------------------------------------------
+    def _score_lines_fast(self, marker):
+        score = 0
+        player_cells = {h for h, m in self.grid.cells.items() if m == marker}
+        directions = [Hex(1, -1, 0), Hex(1, 0, -1), Hex(0, 1, -1)]
+        visited_in_direction = {d: set() for d in directions}
+
+        for d in directions:
+            for cell in player_cells:
+                if cell in visited_in_direction[d]: continue
+                if (cell - d) in player_cells: continue
+                
+                length = 0
+                curr = cell
+                # Just track points for multiplier
+                line_cells = [] if self.has_bonuses else None
+                
+                while curr in player_cells:
+                    length += 1
+                    if self.has_bonuses: line_cells.append(curr)
+                    visited_in_direction[d].add(curr)
+                    curr = curr + d
+                
+                if length >= 3:
+                     n = length - 2
+                     base_pts = int(n * (n + 1) / 2)
+                     if self.has_bonuses:
+                         score += self._calculate_points(base_pts, line_cells)
+                     else:
+                         score += base_pts
+        return score
+
+    def _score_loops_fast(self, marker):
+        score = 0
+        player_cells = {h for h, m in self.grid.cells.items() if m == marker}
+        found_loops = set() # Store centers instead of full sets? No, need sets for uniquing overlapping
+        # Actually, for loops, the center uniquely defines the loop for a player.
+        # A player cannot have two loops with the same center.
+        found_centers = set()
+        
+        directions = [
+            Hex(1, -1, 0), Hex(1, 0, -1), Hex(0, 1, -1),
+            Hex(-1, 1, 0), Hex(-1, 0, 1), Hex(0, -1, 1)
+        ]
+
+        for cell in player_cells:
+            for d in directions:
+                center = cell - d
+                if center in found_centers: continue
+
+                is_loop = True
+                loop_points_list = [] if self.has_bonuses else None
+                
+                for neighbor_dir in directions:
+                    neighbor = center + neighbor_dir
+                    if neighbor not in player_cells:
+                        is_loop = False
+                        break
+                    if self.has_bonuses: loop_points_list.append(neighbor)
+                
+                if is_loop:
+                    found_centers.add(center)
+                    base_pts = 15
+                    if self.has_bonuses:
+                        score += self._calculate_points(base_pts, loop_points_list)
+                    else:
+                        score += base_pts
+        return score
+
+    def _score_hollow_shapes_fast(self, marker):
+        score = 0
+        player_cells = {h for h, m in self.grid.cells.items() if m == marker}
+        orientations = [
+             (Hex(1, -1, 0), Hex(0, 1, -1)),
+             (Hex(0, 1, -1), Hex(-1, 1, 0)),
+             (Hex(-1, 1, 0), Hex(-1, 0, 1))
+        ]
+        sizes = [(3, 4), (4, 8)]
+        found_hollows = set() # Store frozenset of vertices to uniques
+
+        for side_dots, points in sizes:
+            steps = side_dots - 1
+            for cell in player_cells:
+                for u, v in orientations:
+                    # We can identify a hollow shape uniquely by (start_cell, u, v).
+                    # But verifying it requires checking the path.
+                    current = cell
+                    path_vertices = set()
+                    path_vertices.add(cell)
+                    valid = True
+
+                    # Unroll loop for speed?
+                    # 1. u
+                    for _ in range(steps):
+                        current = current + u
+                        if current not in player_cells: valid = False; break
+                        path_vertices.add(current)
+                    if not valid: continue
+                    
+                    # 2. v
+                    for _ in range(steps):
+                        current = current + v
+                        if current not in player_cells: valid = False; break
+                        path_vertices.add(current)
+                    if not valid: continue
+
+                    # 3. -u
+                    minus_u = Hex(0,0,0) - u
+                    for _ in range(steps):
+                        current = current + minus_u
+                        if current not in player_cells: valid = False; break
+                        path_vertices.add(current)
+                    if not valid: continue
+
+                    # 4. -v
+                    minus_v = Hex(0,0,0) - v
+                    for _ in range(steps):
+                         current = current + minus_v
+                         if current not in player_cells: valid = False; break
+                         path_vertices.add(current)
+                    if not valid: continue
+                    
+                    # If we got here, it's valid
+                    shape_id = frozenset(path_vertices)
+                    if shape_id not in found_hollows:
+                        found_hollows.add(shape_id)
+                        if self.has_bonuses:
+                             score += self._calculate_points(points, path_vertices)
+                        else:
+                             score += points
+        return score
+
+    def _score_triangles_fast(self, marker):
+        score = 0
+        found_triangles_ids = set() # Identify by set of pixels
+        player_cells = {h for h, m in self.grid.cells.items() if m == marker}
+        
+        neighbors = [
+            Hex(1, -1, 0), Hex(1, 0, -1), Hex(0, 1, -1),
+            Hex(-1, 1, 0), Hex(-1, 0, 1), Hex(0, -1, 1)
+        ]
+        
+        for size in range(3, 9):
+            for cell in player_cells:
+                for i in range(6):
+                    u = neighbors[i]
+                    v = neighbors[(i+1)%6]
+                    
+                    triangle_pixels = set()
+                    valid = True
+                    for a in range(size):
+                        for b in range(size - a):
+                            p = Hex(cell.q + a*u.q + b*v.q, cell.r + a*u.r + b*v.r, cell.s + a*u.s + b*v.s)
+                            if p not in player_cells:
+                                valid = False
+                                break
+                            triangle_pixels.add(p)
+                        if not valid: break
+                    
+                    if valid:
+                        t_id = frozenset(triangle_pixels)
+                        if t_id not in found_triangles_ids:
+                            found_triangles_ids.add(t_id)
+                            base_pts = size * 5
+                            if self.has_bonuses:
+                                score += self._calculate_points(base_pts, triangle_pixels)
+                            else:
+                                score += base_pts
+        return score
+
+    @property
+    def has_bonuses(self):
+        return hasattr(self.grid, 'bonuses') and self.grid.bonuses
+
+    def _calculate_points(self, base_points, cells):
+        """
+        Applies bonus multipliers from the grid.
+        """
+        multiplier = 1
+        if hasattr(self.grid, 'bonuses'):
+            for cell in cells:
+                multiplier *= self.grid.bonuses.get(cell, 1)
+        return base_points * multiplier
 
     def _calculate_points(self, base_points, cells):
         """

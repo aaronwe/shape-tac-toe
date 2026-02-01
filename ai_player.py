@@ -45,7 +45,8 @@ class GreedyPlayer(AIPlayer):
             game.grid.cells[move] = self.color
             
             # 2. Score
-            score, _ = game.scorer.calculate_score(self.color)
+            # Use fast scoring calculation
+            score, _ = game.scorer.calculate_score(self.color, just_points=True)
             
             # 3. Undo
             game.grid.cells[move] = None
@@ -64,7 +65,7 @@ class MinimaxPlayer(AIPlayer):
         super().__init__(color)
         self.depth = depth
         self.beam_width = beam_width
-        # Cache neighbors for sort heuristic? No, just use simple scoring.
+        self.transposition_table = {}
 
     def get_move(self, game):
         valid_moves = game.get_valid_moves()
@@ -106,8 +107,19 @@ class MinimaxPlayer(AIPlayer):
         return best_move
 
     def _minimax(self, game, depth, is_maximizing, alpha, beta):
+        # 1. Transposition Table Lookup
+        # Create a simple hash/key of the board state.
+        # Ideally, we'd use Zobrist hashing, but for now, stringifying the cells is "okay" given the grid size.
+        # Actually, let's just use the set of (cell, marker) tuples which is hashable.
+        # Optimization: We only need to key off the OCCUPIED cells.
+        board_key = (frozenset(game.grid.cells.items()), depth, is_maximizing)
+        if board_key in self.transposition_table:
+            return self.transposition_table[board_key]
+
         if depth == 0 or game.grid.is_full():
-            return self._evaluate(game)
+            val = self._evaluate(game)
+            self.transposition_table[board_key] = val
+            return val
             
         valid_moves = game.get_valid_moves()
         
@@ -134,6 +146,7 @@ class MinimaxPlayer(AIPlayer):
                 alpha = max(alpha, eval_score)
                 if beta <= alpha:
                     break
+            self.transposition_table[board_key] = max_eval
             return max_eval
         else:
             min_eval = float('inf')
@@ -147,6 +160,7 @@ class MinimaxPlayer(AIPlayer):
                 beta = min(beta, eval_score)
                 if beta <= alpha:
                     break
+            self.transposition_table[board_key] = min_eval
             return min_eval
 
     def _sort_moves_by_heuristic(self, game, moves, player_color):
@@ -157,12 +171,8 @@ class MinimaxPlayer(AIPlayer):
         scored = []
         for move in moves:
             game.grid.cells[move] = player_color
-            # Calculate ONLY the score for this player to be fast
-            # We assume calculate_score is the bottleneck, but it's the only heuristic we have.
-            # Optimization: We know _score_lines etc. scan the board.
-            # Maybe looking at 'last_scoring_event' or similar would be faster?
-            # For now, just run the code. It is O(N) per move.
-            s, _ = game.scorer.calculate_score(player_color)
+            # OPTIMIZATION: Use just_points=True to skip shape generation
+            s, _ = game.scorer.calculate_score(player_color, just_points=True)
             game.grid.cells[move] = None
             scored.append((s, move))
             
@@ -174,10 +184,10 @@ class MinimaxPlayer(AIPlayer):
         """
         Simple heuristic: (My Score - Opponent Score)
         """
-        # Note: Scorer.calculate_score is expensive, but necessary.
-        my_score, _ = game.scorer.calculate_score(self.color)
+        # OPTIMIZATION: Use just_points=True
+        my_score, _ = game.scorer.calculate_score(self.color, just_points=True)
         opponent = 'Blue' if self.color == 'Red' else 'Red'
-        op_score, _ = game.scorer.calculate_score(opponent)
+        op_score, _ = game.scorer.calculate_score(opponent, just_points=True)
         return my_score - op_score
 
 class EasyPlayer(AIPlayer):
@@ -195,7 +205,8 @@ class EasyPlayer(AIPlayer):
         
         for move in valid_moves:
             game.grid.cells[move] = self.color
-            score, _ = game.scorer.calculate_score(self.color)
+            # Optimization: Use fast scoring here too
+            score, _ = game.scorer.calculate_score(self.color, just_points=True)
             game.grid.cells[move] = None
             scored_moves.append((score, move))
             
@@ -234,3 +245,10 @@ class GeniusPlayer(MinimaxPlayer):
     """
     def __init__(self, color):
         super().__init__(color, depth=3, beam_width=5)
+
+class SmartPlayer(MinimaxPlayer):
+    """
+    "Smart": Minimax with standard constraints (Depth 2).
+    """
+    def __init__(self, color):
+        super().__init__(color, depth=2)
